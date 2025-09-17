@@ -1,0 +1,87 @@
+# ========================================
+# Node / Backend / Frontend Common
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log
+
+# ========================================
+# Environment files
+# ========================================
+.env
+.env.*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+next-env.d.ts
+
+# ========================================
+# Build outputs
+# ========================================
+dist/
+build/
+.next/
+out/
+coverage/
+.cache/
+temp/
+tmp/
+
+# ========================================
+# Logs
+# ========================================
+logs
+*.log
+*.log.*
+*.out
+*.pid
+*.seed
+*.pid.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ========================================
+# Editor / OS
+# ========================================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# ========================================
+# Testing
+# ========================================
+/test-results/
+/coverage/
+/.nyc_output/
+
+# ========================================
+# TypeScript
+# ========================================
+*.tsbuildinfo
+
+# ========================================
+# Misc
+# ========================================
+*.tsbuildinfo
+*.tgz
+*.swp
+*.swo
+*.bak
+*.tmp
+*.zip
+
