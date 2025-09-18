@@ -53,7 +53,7 @@ export class PostsService {
     Object.assign(post, dto);
     return this.postsRepo.save(post);
   }
-  
+
   /** Delete a post */
   async remove(id: string, userId: string): Promise<void> {
     const post = await this.postsRepo.findOne({
@@ -147,12 +147,24 @@ export class PostsService {
     });
   }
 
-  /** Fetch all posts */
-  async findAll(): Promise<Post[]> {
-    return this.postsRepo.find({
+  /** Fetch all posts with pagination */
+  async findAll(
+    page = 1,
+    limit = 10,
+  ): Promise<{ data: Post[]; total: number; page: number; limit: number }> {
+    const [data, total] = await this.postsRepo.findAndCount({
       relations: ['author', 'comments', 'likes'],
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
   }
 
   /** Fetch single post */
@@ -164,5 +176,4 @@ export class PostsService {
     if (!post) throw new NotFoundException('Post not found');
     return post;
   }
-
 }
