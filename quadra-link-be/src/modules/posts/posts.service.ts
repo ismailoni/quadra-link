@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Post } from './entities/post.entity';
@@ -32,14 +36,35 @@ export class PostsService {
   }
 
   /** Update Post */
-  async update(id: string, userId: string, dto: Partial<CreatePostDto>): Promise<Post> {
-    const post = await this.postsRepo.findOne({ where: { id } });
+  async update(
+    id: string,
+    userId: string,
+    dto: Partial<CreatePostDto>,
+  ): Promise<Post> {
+    const post = await this.postsRepo.findOne({
+      where: { id },
+      relations: ['author'],
+    });
+
     if (!post) throw new NotFoundException('Post not found');
     if (post.author.id !== userId) {
       throw new BadRequestException('You can only update your own posts');
     }
     Object.assign(post, dto);
     return this.postsRepo.save(post);
+  }
+  
+  /** Delete a post */
+  async remove(id: string, userId: string): Promise<void> {
+    const post = await this.postsRepo.findOne({
+      where: { id },
+      relations: ['author'],
+    });
+    if (!post) throw new NotFoundException('Post not found');
+    if (post.author.id !== userId) {
+      throw new BadRequestException('You can only delete your own posts');
+    }
+    await this.postsRepo.remove(post);
   }
 
   /** Add a comment to a post */
@@ -140,16 +165,4 @@ export class PostsService {
     return post;
   }
 
-  /** Delete a post */
-  async remove(id: string, userId: string): Promise<void> {
-    const post = await this.postsRepo.findOne({
-      where: { id },
-      relations: ['author'],
-    });
-    if (!post) throw new NotFoundException('Post not found');
-    if (post.author.id !== userId) {
-      throw new BadRequestException('You can only delete your own posts');
-    }
-    await this.postsRepo.remove(post);
-  }
 }

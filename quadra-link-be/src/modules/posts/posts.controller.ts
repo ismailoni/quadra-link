@@ -74,9 +74,9 @@ export class PostsController {
 
     // 👎 Unlike a post
     @Post('unlike')
-    unlikePost(@Request() req, @Body() createLikeDto) {
+    unlikePost(@Request() req, @Body('postId') postId: string) {
         const userId = req.user.id;
-        return this.postsService.unlikePost(userId, createLikeDto);
+        return this.postsService.unlikePost(userId, postId);
     }
 
 
