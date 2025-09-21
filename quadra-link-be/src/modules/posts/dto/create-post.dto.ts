@@ -15,7 +15,6 @@ export class CreatePostDto {
   @IsString()
   mediaUrl?: string;
 
-  @IsOptional()
   @IsEnum(PostVisibility, {
     message: 'Visibility must be one of: public, school, private',
   })

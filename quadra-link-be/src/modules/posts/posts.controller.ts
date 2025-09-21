@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -21,11 +22,16 @@ export class PostsController {
 
   // 🆕 Create a new post
   @Post()
-  create(@Request() req, @Body() createPostDto: CreatePostDto) {
-    const userId = req.user.id;
-    return this.postsService.create(userId, createPostDto);
+  async create(@Request() req, @Body() createPostDto: CreatePostDto) {
+    try {
+      const userId = req.user?.sub; // <-- Use 'sub' from JWT payload
+      if (!userId) throw new UnauthorizedException('User not authenticated');
+      return await this.postsService.create(userId, createPostDto);
+    } catch (error) {
+      console.error('Create post error:', error);
+      throw error;
+    }
   }
-
 
   // 📄 Get all posts (paginated)
   @Get()
