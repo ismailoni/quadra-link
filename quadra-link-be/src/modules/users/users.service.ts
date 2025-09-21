@@ -6,12 +6,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
 
   /////////////////////////////
@@ -137,4 +139,14 @@ export class UsersService {
     }
     return updatedUser;
   }
+
+  async findByToken(token: string): Promise<User | null> {
+    try {
+      const payload = this.jwtService.verify(token); // throws if invalid
+      return await this.usersRepository.findOne({ where: { id: payload.sub } });
+    } catch {
+      return null;
+    }
+  }
 }
+

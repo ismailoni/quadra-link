@@ -1,12 +1,15 @@
 import {
   Controller,
   Get,
+  Req,
+  Request,
   Param,
   Delete,
   UseGuards,
   Post,
   Body,
   Patch,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -20,9 +23,20 @@ import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // 🔒 Display all users - Admin only
-  @Get()
   @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getMe(@Request() req) {
+    const userId = req.user?.sub; // Use 'sub' from JWT payload
+    if (!userId) throw new UnauthorizedException('No user');
+    const user = await this.usersService.findOne(userId); // Fetch full user from DB
+    if (!user) throw new UnauthorizedException('Invalid token');
+    return user; // Return full user info
+  }
+
+
+  // 🔒 Display all users - Admin only
+  @UseGuards(JwtAuthGuard)
+  @Get()
   @Roles(UserRole.ADMIN)
   findAll() {
     return this.usersService.findAll();
@@ -35,35 +49,36 @@ export class UsersController {
   }
 
   // 🔒 Find user by ID
-  @Get(':id')
   @UseGuards(JwtAuthGuard)
+  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   // 🔒 Delete user by ID
-  @Delete(':id')
   @UseGuards(JwtAuthGuard)
+  @Delete(':id')
   @Roles(UserRole.USER, UserRole.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  async remove(@Param('id') id: string) {
+    const user = await this.usersService.findOne(id);
+    if (!user) throw new UnauthorizedException('User not found');
+    await this.usersService.remove(id);
+    return { message: 'User deleted' };
   }
 
   // 🔒 Update user details (but NOT school/email)
-  @Patch(':id')
   @UseGuards(JwtAuthGuard)
+  @Patch(':id')
   @Roles(UserRole.USER)
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
-  
   // 🔒 Update user details - Admin only
-  @Patch('admin/:id')
   @UseGuards(JwtAuthGuard)
+  @Patch('admin/:id')
   @Roles(UserRole.ADMIN)
   adminUpdate(@Param('id') id: string, @Body() adminUpdateUserDto: AdminUpdateUserDto) {
     return this.usersService.adminUpdate(id, adminUpdateUserDto);
   }
-
 }

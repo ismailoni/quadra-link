@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { UserRole } from '../../../common/enums/user-role.enum';
 import { OneToMany } from 'typeorm';
 import { Post } from '../../posts/entities/post.entity';
@@ -16,6 +17,7 @@ export class User {
   @Column({ nullable: false })
   school: string;
 
+  @Exclude() // exclude from responses by default
   @Column()
   passwordHash: string;
 
