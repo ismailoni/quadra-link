@@ -1,100 +1,110 @@
 'use client';
-import React, { useState } from 'react';
+
+import React from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu } from 'lucide-react';
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from '@/components/ui/navigation-menu';
 
 const navLinks = [
-    { name: 'Home', href: '/' },
-    { name: 'About', href: '/about' },
-    { name: 'Services', href: '/services' },
-    { name: 'Contact', href: '/contact' },
+  { name: 'Home', href: '/' },
+  { name: 'Features', href: '/features' },
+  { name: 'About', href: '/about' },
+  { name: 'Resources', href: '/resources' },
+  { name: 'Support', href: '/support' },
+];
+
+const navButtons = [
+  { name: 'Login', href: '/login' },
+  { name: 'Sign Up', href: '/signup' },
 ];
 
 const Navbar: React.FC = () => {
-    const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <nav className="w-full border-b bg-background font-[var(--font-montserrat)]">
+      <div className="flex h-16 items-center justify-between px-4">
+        {/* Logo */}
+        <Link href="/" className="text-xl font-bold">
+          QuadraLink
+        </Link>
 
-    return (
-        <nav className="navbar">
-            <div className="navbar-container">
-                <div className="navbar-logo">
-                    <a href="/">QuadraLink</a>
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-6">
+          <NavigationMenu>
+            <NavigationMenuList>
+              {navLinks.map((link) => (
+                <NavigationMenuItem key={link.name}>
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href={link.href}
+                      className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {link.name}
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              ))}
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          <div className="flex gap-3 ml-6">
+            {navButtons.map((btn, i) => (
+              <Button
+                key={btn.name}
+                variant={i === 1 ? 'default' : 'outline'} // Sign Up = filled, Login = outline
+                className={i === 1 ? 'bg-blue-700 text-white font-semibold hover:bg-white hover:text-black border-[2px] border-blue-700 transition-all' : 'border-[2px] border-blue-700 font-semibold hover:bg-blue-700 hover:text-white'}
+                asChild
+              >
+                <Link href={btn.href}>{btn.name}</Link>
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile Nav (Sheet) */}
+        <div className="md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="default">
+                <Menu />
+                <span className="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-70 p-10">
+              <div className="flex flex-col space-y-4 mt-6">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+                <div className="pt-4 border-t flex flex-col gap-3">
+                  {navButtons.map((btn, i) => (
+                    <Button
+                      key={btn.name}
+                      variant={i === 1 ? 'default' : 'outline'}
+                      asChild
+                    >
+                      <Link href={btn.href}>{btn.name}</Link>
+                    </Button>
+                  ))}
                 </div>
-                <button
-                    className="navbar-toggle"
-                    onClick={() => setMenuOpen(!menuOpen)}
-                    aria-label="Toggle menu"
-                >
-                    <span className="navbar-toggle-icon">&#9776;</span>
-                </button>
-                <ul className={`navbar-links ${menuOpen ? 'open' : ''}`}>
-                    {navLinks.map(link => (
-                        <li key={link.name}>
-                            <a href={link.href}>{link.name}</a>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-            <style>{`
-                .navbar {
-                    background: #222;
-                    color: #fff;
-                    padding: 0.5rem 1rem;
-                }
-                .navbar-container {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    max-width: 1200px;
-                    margin: 0 auto;
-                }
-                .navbar-logo a {
-                    color: #fff;
-                    font-weight: bold;
-                    font-size: 1.2rem;
-                    text-decoration: none;
-                }
-                .navbar-toggle {
-                    background: none;
-                    border: none;
-                    color: #fff;
-                    font-size: 2rem;
-                    cursor: pointer;
-                    display: none;
-                }
-                .navbar-links {
-                    display: flex;
-                    list-style: none;
-                    gap: 1.5rem;
-                }
-                .navbar-links a {
-                    color: #fff;
-                    text-decoration: none;
-                    font-size: 1rem;
-                }
-                @media (max-width: 768px) {
-                    .navbar-toggle {
-                        display: block;
-                    }
-                    .navbar-links {
-                        position: absolute;
-                        top: 60px;
-                        left: 0;
-                        right: 0;
-                        background: #222;
-                        flex-direction: column;
-                        gap: 0;
-                        display: none;
-                    }
-                    .navbar-links.open {
-                        display: flex;
-                    }
-                    .navbar-links li {
-                        padding: 1rem;
-                        border-bottom: 1px solid #333;
-                    }
-                }
-            `}</style>
-        </nav>
-    );
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </nav>
+  );
 };
 
 export default Navbar;
-

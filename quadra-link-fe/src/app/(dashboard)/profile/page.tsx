@@ -18,8 +18,52 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 const ProfilePage: React.FC = () => {
-  const { user, loading } = useUser();
+  const { user, loading, setUser, updateUser, deleteUser } = useUser();
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    department: user?.department || '',
+    bio: user?.bio || '',
+  });
+
+  // Handle form inputs
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Edit profile handler using useUser hook
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const updatedUser = await updateUser(formData);
+      setUser(updatedUser); // update global user state
+      setOpen(false);
+    } catch (err) {
+      console.error('Update failed:', err);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete user handler using useUser hook
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
+    setDeleting(true);
+    try {
+      await deleteUser();
+      setUser(null); // clear user state
+      window.location.href = '/login';
+    } catch (err) {
+      alert('Failed to delete account.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,35 +138,54 @@ const ProfilePage: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>Edit Profile</DialogTitle>
                 <DialogDescription>
-                  Update your profile information. Changes will reflect once saved.
+                  Update your profile information. Changes will be saved to your account.
                 </DialogDescription>
               </DialogHeader>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setOpen(false);
-                  alert('Profile updated (frontend only for now)!');
-                }}
-                className="space-y-4 mt-4"
-              >
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Name</label>
-                  <Input defaultValue={user.name} />
+                  <Input
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Department</label>
-                  <Input defaultValue={user.department || ''} />
+                  <Input
+                    name="department"
+                    placeholder={user.department || 'e.g., Computer Science'}
+                    value={formData.department}
+                    onChange={handleChange}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Bio</label>
-                  <Textarea defaultValue={user.bio || ''} />
+                  <Textarea
+                    name="bio"
+                    placeholder={user.bio || 'A short bio about yourself'}
+                    value={formData.bio}
+                    onChange={handleChange}
+                  />
                 </div>
                 <DialogFooter>
-                  <Button type="submit">Save Changes</Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
+          {/* Delete Account Button */}
+          <Button
+            variant="destructive"
+            className="w-full mt-2"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting...' : 'Delete Account'}
+          </Button>
         </CardContent>
       </Card>
     </div>
