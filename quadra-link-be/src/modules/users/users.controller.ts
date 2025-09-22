@@ -69,7 +69,7 @@ export class UsersController {
   // 🔒 Update user details (but NOT school/email)
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  @Roles(UserRole.USER)
+  // @Roles(UserRole.USER)
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
