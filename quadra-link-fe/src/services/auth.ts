@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://quadra-link.onrender.com';
+const API_URL = 'https://quadra-link.onrender.com/auth';
 
 export interface LoginCredentials {
     email: string;
