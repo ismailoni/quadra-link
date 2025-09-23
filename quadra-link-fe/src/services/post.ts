@@ -1,14 +1,15 @@
 import { apiFetch } from "@/lib/api";
 import type { Post, Comment, Like, SuccessResponse } from "@/types";
 
-export async function getPosts(): Promise<Post[]> {
-  const res = await apiFetch("/posts");
-  return res.data; // <-- Only return the posts array
+export async function getPosts(page = 1, limit = 10): Promise<{
+  data: Post[];
+  total: number;
+  page: number;
+  limit: number;
+}> {
+  return apiFetch(`/posts?page=${page}&limit=${limit}`);
 }
 
-export function getPost(id: string): Promise<Post> {
-  return apiFetch(`/posts/${id}`);
-}
 
 export function createPost(
   content: string,
@@ -35,7 +36,7 @@ export function deletePost(id: string): Promise<SuccessResponse> {
   return apiFetch(`/posts/${id}`, { method: "DELETE" });
 }
 
-export function addComment(postId: string, content: string) {
+export function addComment(postId: string, content: string, ):Promise<Comment> {
   return apiFetch("/posts/comment", {
     method: "POST",
     body: JSON.stringify({ postId, content }), // <-- use 'content'

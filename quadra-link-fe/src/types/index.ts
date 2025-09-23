@@ -5,7 +5,10 @@
 // ========================
 export interface User {
   id: string;
-  name: string;
+  fullname: string;
+  firstname: string;
+  lastname: string;
+  pseudoname: string;
   email: string;
   avatar?: string;        // profile picture
   bio?: string; 
@@ -31,8 +34,8 @@ export interface AuthResponse {
 export interface Comment {
   id: string;
   postId: string;
-  text: string;
-  user: User;
+  content: string;
+  author: User;
   createdAt: string;
   updatedAt: string;
 }
