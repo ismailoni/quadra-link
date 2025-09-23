@@ -16,50 +16,54 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Mail, GraduationCap, UserCircle2, Building2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const ProfilePage: React.FC = () => {
   const { user, loading, setUser, updateUser, deleteUser } = useUser();
   const [open, setOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    firstname: user?.firstname || '',
+    lastname: user?.lastname || '',
+    pseudoname: user?.pseudoname || '',
     department: user?.department || '',
     bio: user?.bio || '',
+    level: user?.level || '',
   });
 
-  // Handle form inputs
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Edit profile handler using useUser hook
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
       const updatedUser = await updateUser(formData);
-      setUser(updatedUser); // update global user state
+      setUser(updatedUser);
       setOpen(false);
-    } catch (err) {
-      console.error('Update failed:', err);
-      alert('Something went wrong. Please try again.');
+      toast.success('Profile updated successfully!');
+    } catch {
+      toast.error('Failed to update profile.');
     } finally {
       setSaving(false);
     }
   };
 
-  // Delete user handler using useUser hook
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
     setDeleting(true);
     try {
       await deleteUser();
-      setUser(null); // clear user state
+      setUser(null);
+      toast.success('Account deleted.');
       window.location.href = '/login';
-    } catch (err) {
-      alert('Failed to delete account.');
+    } catch {
+      toast.error('Failed to delete account.');
     } finally {
       setDeleting(false);
     }
@@ -79,7 +83,6 @@ const ProfilePage: React.FC = () => {
           <div className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-2/3" />
           </div>
         </Card>
       </div>
@@ -100,92 +103,106 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="flex justify-center mt-10">
-      <Card className="w-full max-w-md p-8 shadow-lg">
+      <Card className="w-full max-w-lg p-8 shadow-xl border rounded-2xl">
         <CardContent className="space-y-6">
+          {/* Profile Header */}
           <div className="flex items-center gap-6">
-            <Avatar className="h-20 w-20 border-2">
-              <AvatarImage src={user.avatar || '/default-avatar.png'} alt={user.name} />
-              <AvatarFallback>{user.name?.charAt(0) ?? 'U'}</AvatarFallback>
+            <Avatar className="h-20 w-20 border-2 ring-2 ring-blue-500">
+              <AvatarImage src={user.avatar || '/default-avatar.png'} alt={user.fullname} />
+              <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xl">
+                {user.firstname?.charAt(0) ?? 'U'}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-2xl font-bold">{user.name}</h1>
-              <span className="text-sm text-blue-600 font-medium">{user.school}</span>
+              <h1 className="text-2xl font-bold">{user.fullname}</h1>
+              <Badge variant="outline" className="mt-1">{user.role}</Badge>
             </div>
           </div>
 
-          <div className="space-y-2 text-base">
-            <p>
-              <strong>Email:</strong> {user.email}
+          {/* Profile Info */}
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <p className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              {user.email}
             </p>
+            {user.school && (
+              <p className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                {user.school}
+              </p>
+            )}
             {user.department && (
-              <p>
-                <strong>Department:</strong> {user.department}
+              <p className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                {user.department}
+              </p>
+            )}
+            {user.level && (
+              <p className="flex items-center gap-2">
+                <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+                Level {user.level}
               </p>
             )}
             {user.bio && (
-              <p>
-                <strong>Bio:</strong> {user.bio}
-              </p>
+              <p className="italic text-muted-foreground">“{user.bio}”</p>
             )}
           </div>
 
-          {/* Edit Profile Modal */}
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full">Edit Profile</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Edit Profile</DialogTitle>
-                <DialogDescription>
-                  Update your profile information. Changes will be saved to your account.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
-                  <Input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Department</label>
-                  <Input
-                    name="department"
-                    placeholder={user.department || 'e.g., Computer Science'}
-                    value={formData.department}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Bio</label>
-                  <Textarea
-                    name="bio"
-                    placeholder={user.bio || 'A short bio about yourself'}
-                    value={formData.bio}
-                    onChange={handleChange}
-                  />
-                </div>
+          {/* Actions */}
+          <div className="space-y-2">
+            {/* Edit Profile Modal */}
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full">Edit Profile</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Edit Profile</DialogTitle>
+                  <DialogDescription>
+                    Update your profile information.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                  <Input name="firstname" value={formData.firstname} onChange={handleChange} placeholder="First name" />
+                  <Input name="lastname" value={formData.lastname} onChange={handleChange} placeholder="Last name" />
+                  <Input name="pseudoname" value={formData.pseudoname} onChange={handleChange} placeholder="Pseudoname" />
+                  <Input name="department" value={formData.department} onChange={handleChange} placeholder="Department" />
+                  <Input name="level" value={formData.level} onChange={handleChange} placeholder="Level" />
+                  <Textarea name="bio" value={formData.bio} onChange={handleChange} placeholder="Write a short bio..." />
+                  <DialogFooter>
+                    <Button type="submit" disabled={saving}>
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Account Confirmation */}
+            <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                  Delete Account
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Account</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. Are you sure you want to permanently delete your account?
+                  </DialogDescription>
+                </DialogHeader>
                 <DialogFooter>
-                  <Button type="submit" disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Changes'}
+                  <Button variant="ghost" onClick={() => setDeleteDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                    {deleting ? 'Deleting...' : 'Yes, Delete'}
                   </Button>
                 </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-          {/* Delete Account Button */}
-          <Button
-            variant="destructive"
-            className="w-full mt-2"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            {deleting ? 'Deleting...' : 'Delete Account'}
-          </Button>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardContent>
       </Card>
     </div>

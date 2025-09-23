@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Card } from '@/components/ui/card';
 import React from 'react';
 import Image from 'next/image';
@@ -75,7 +76,7 @@ const Page: React.FC = () => {
       </Card>
 
       {/* FEATURES */}
-      <section className="w-full max-w-6xl mx-auto my-16">
+      <Card className="w-full max-w-6xl mx-auto my-16">
         <div className="text-center mb-10">
           <h2
             className="text-lg font-semibold mb-2"
@@ -93,44 +94,50 @@ const Page: React.FC = () => {
             Innovative tools designed to support your mental health and campus experience.
           </p>
         </div>
-        <div className="flex flex-col md:flex-row gap-8 justify-center items-stretch">
-          {featurecards.map((card, idx) => (
-            <div
-              key={card.title}
-              className="relative flex-1 min-w-[260px] max-w-[340px] rounded-xl overflow-hidden shadow-lg bg-black group"
-              style={{ height: 400 }}
-            >
-              <Image
-                src={`/public/${card.background.replace('/', '')}`.replace('/public/', '/')}
 
-                alt={card.title}
-                fill
-                style={{ objectFit: 'cover', opacity: 0.7 }}
-                className="absolute inset-0 w-full h-full transition group-hover:scale-105"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
-              <div className="relative z-10 flex flex-col justify-end h-full p-6">
-                <span className="text-sm text-white font-medium mb-2">{card.title}</span>
-                <h2
-                  className="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight"
-                  style={{ fontFamily: 'var(--font-montserrat), sans-serif' }}
-                >
-                  {card.head}
-                </h2>
-                <p className="text-white text-base mb-6">{card.description}</p>
-                <Link
-                  href={card.href}
-                  className="text-white text-sm font-semibold flex items-center gap-2 hover:underline"
-                  style={{ marginTop: 'auto' }}
-                >
-                  {card.cto} <span aria-hidden="true">›</span>
-                </Link>
+        <ScrollArea>
+
+          <div className="flex flex-row gap-8 justify-center items-stretch">
+
+            {featurecards.map((card, idx) => (
+              <div
+                key={idx}
+                className="relative flex-1 w-[405px] rounded-md overflow-hidden shadow-lg bg-black group"
+                style={{ height: 630 }}
+              >
+                <Image
+                  src={`/public/${card.background.replace('/', '')}`.replace('/public/', '/')}
+
+                  alt={card.title}
+                  fill
+                  style={{ objectFit: 'cover', opacity: 0.7 }}
+                  className="absolute inset-0 w-full h-full transition group-hover:scale-105"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
+                <div className="relative z-10 flex flex-col justify-end h-full p-6">
+                  <span className="text-sm text-white font-medium mb-2">{card.title}</span>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight"
+                    style={{ fontFamily: 'var(--font-montserrat), sans-serif' }}
+                  >
+                    {card.head}
+                  </h2>
+                  <p className="text-white text-base mb-6">{card.description}</p>
+                  <Link
+                    href={card.href}
+                    className="text-white text-sm font-semibold flex items-center gap-2 hover:animate-"
+                  >
+                    {card.cto} <span aria-hidden="true">--&gt;</span>
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </Card>
     </main>
   );
 };
