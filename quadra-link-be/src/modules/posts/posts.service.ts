@@ -72,14 +72,14 @@ export class PostsService {
     const post = await this.postsRepo.findOne({ where: { id: dto.postId } });
     if (!post) throw new NotFoundException('Post not found');
 
-    const user = await this.usersRepo.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+  const author = await this.usersRepo.findOne({ where: { id: userId } });
+  if (!author) throw new NotFoundException('User not found');
 
-    const comment = this.commentsRepo.create({
-      content: dto.content,
-      post,
-      author: user,
-    });
+  let comment = this.commentsRepo.create({
+    content: dto.content,
+    post,
+    author,
+  });
 
     await this.postsRepo.update(dto.postId, {
       commentsCount: () => '"commentsCount" + 1',
