@@ -1,0 +1,14 @@
+[
+  {
+    "name": "University of Lagos",
+    "shortcode": "UNILAG",
+    "placeholder": "matricno@live.unilag.edu.ng",
+    "emailPattern": "^[0-9]{9}@live\\.unilag\\.edu\\.ng$"
+  },
+  {
+    "name": "University of Ibadan",
+    "shortcode": "UI",
+    "placeholder": "matricno@stu.ui.edu.ng",
+    "emailPattern": "^[0-9]{9}@stu\\.ui\\.edu\\.ng$"
+  }
+]
