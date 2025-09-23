@@ -10,9 +10,9 @@ import schools from "@/data/schools.json";
 
 const baseSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
-  firstname: z.string().min(2, "First name is required"),
-  surname: z.string().min(2, "Surname is required"),
-  pseudoname: z.string().min(2, "Pseudoname is required"),
+  Firstname: z.string().min(2, "First name is required"),
+  Lastname: z.string().min(2, "Surname is required"),
+  Pseudoname: z.string().min(2, "Pseudoname is required"),
   school: z.string().min(1, "School is required"),
   email: z.string().min(1, "Email is required"), // refined later
 });
@@ -177,22 +177,22 @@ export default function SignupPage() {
               <label className="block text-sm font-medium mb-1">First Name</label>
               <input
                 type="text"
-                {...register("firstname")}
+                {...register("Firstname")}
                 className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
               />
-              {errors.firstname && (
-                <p className="text-sm text-red-600">{errors.firstname.message}</p>
+              {errors.Firstname && (
+                <p className="text-sm text-red-600">{errors.Firstname.message}</p>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Surname</label>
               <input
                 type="text"
-                {...register("surname")}
+                {...register("Lastname")}
                 className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
               />
-              {errors.surname && (
-                <p className="text-sm text-red-600">{errors.surname.message}</p>
+              {errors.Lastname && (
+                <p className="text-sm text-red-600">{errors.Lastname.message}</p>
               )}
             </div>
           </div>
@@ -202,11 +202,11 @@ export default function SignupPage() {
             <label className="block text-sm font-medium mb-1">Pseudoname</label>
             <input
               type="text"
-              {...register("pseudoname")}
+              {...register("Pseudoname")}
               className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
             />
-            {errors.pseudoname && (
-              <p className="text-sm text-red-600">{errors.pseudoname.message}</p>
+            {errors.Pseudoname && (
+              <p className="text-sm text-red-600">{errors.Pseudoname.message}</p>
             )}
           </div>
 
