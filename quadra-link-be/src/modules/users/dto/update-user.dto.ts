@@ -10,7 +10,17 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @Transform(({ value }) => value?.trim())
-  name?: string;
+  Firstname?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value?.trim())
+  Lastname?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value?.trim())
+  Pseudoname?: string;
 
   @IsOptional()
   @IsUrl({}, { message: 'Avatar must be a valid URL' })

@@ -11,6 +11,15 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column()
+  Fisrtname: string;
+
+  @Column()
+  Lastname: string;
+
+  @Column({ unique: true })
+  Pseudoname: string;
+
   @Column({ unique: true })
   email: string;
   
@@ -21,8 +30,6 @@ export class User {
   @Column()
   passwordHash: string;
 
-  @Column()
-  name: string;
 
   @Column({ nullable: true })
   avatarUrl: string;

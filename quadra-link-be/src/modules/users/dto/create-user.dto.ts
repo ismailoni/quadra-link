@@ -21,7 +21,15 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsString()
-  name: string;
+  Firstname: string;
+
+  @IsNotEmpty()
+  @IsString()
+  Lastname: string;
+
+  @IsNotEmpty()
+  @IsString()
+  Pseudoname: string;
 
   @IsOptional()
   @IsEnum(UserRole)
