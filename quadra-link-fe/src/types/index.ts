@@ -5,10 +5,10 @@
 // ========================
 export interface User {
   id: string;
-  fullname: string;
-  firstname: string;
-  lastname: string;
-  pseudoname: string;
+  Fullname: string;
+  Firstname: string;
+  Lastname: string;
+  Pseudoname: string;
   email: string;
   avatar?: string;        // profile picture
   bio?: string; 
