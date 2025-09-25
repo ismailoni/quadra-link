@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://quadra-link.onrender.com/auth';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface LoginCredentials {
     email: string;
@@ -20,7 +20,7 @@ export interface AuthResponse {
 }
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await axios.post<AuthResponse>(`${API_URL}/login`, credentials);
+    const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials);
     // Store token in localStorage
     if (response.data.access_token) {
         localStorage.setItem('authToken', response.data.access_token);
@@ -32,14 +32,7 @@ export const getToken = (): string | null => {
     return localStorage.getItem('authToken');
 };
 
-export const register = async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await axios.post<AuthResponse>(`${API_URL}/register`, data);
-    // Store token if returned
-    if (response.data.access_token) {
-        localStorage.setItem('authToken', response.data.access_token);
-    }
-    return response.data;
-};
+
 
 export const logout = (): void => {
     localStorage.removeItem('authToken');
