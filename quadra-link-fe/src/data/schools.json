@@ -10,5 +10,90 @@
     "shortcode": "UI",
     "placeholder": "matricno@stu.ui.edu.ng",
     "emailPattern": "^[0-9]{9}@stu\\.ui\\.edu\\.ng$"
+  },
+  {
+    "name": "Obafemi Awolowo University",
+    "shortcode": "OAU",
+    "placeholder": "matricno@oauife.edu.ng",
+    "emailPattern": "^[0-9]{9}@oauife\\.edu\\.ng$"
+  },
+  {
+    "name": "University of Nigeria, Nsukka",
+    "shortcode": "UNN",
+    "placeholder": "matricno@unn.edu.ng",
+    "emailPattern": "^[0-9]{9}@unn\\.edu\\.ng$"
+  },
+  {
+    "name": "Ahmadu Bello University",
+    "shortcode": "ABU",
+    "placeholder": "matricno@abu.edu.ng",
+    "emailPattern": "^[0-9]{9}@abu\\.edu\\.ng$"
+  },
+  {
+    "name": "Federal University of Technology Akure",
+    "shortcode": "FUTA",
+    "placeholder": "matricno@futa.edu.ng",
+    "emailPattern": "^[0-9]{9}@futa\\.edu\\.ng$"
+  },
+  {
+    "name": "University of Benin",
+    "shortcode": "UNIBEN",
+    "placeholder": "matricno@uniben.edu",
+    "emailPattern": "^[0-9]{9}@uniben\\.edu$"
+  },
+
+  {
+    "name": "Lagos State University",
+    "shortcode": "LASU",
+    "placeholder": "matricno@lasu.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@lasu\\.edu\\.ng$"
+  },
+  {
+    "name": "Lagos State University of Science and Technology",
+    "shortcode": "LASUSTECH",
+    "placeholder": "matricno@lasustech.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@lasustech\\.edu\\.ng$"
+  },
+  {
+    "name": "Lagos State University of Education",
+    "shortcode": "LASUED",
+    "placeholder": "matricno@lasued.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@lasued\\.edu\\.ng$"
+  },
+  {
+    "name": "Pan-Atlantic University",
+    "shortcode": "PAU",
+    "placeholder": "yourname@pau.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@pau\\.edu\\.ng$"
+  },
+  {
+    "name": "Caleb University",
+    "shortcode": "CALEB",
+    "placeholder": "yourname@calebuniversity.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@calebuniversity\\.edu\\.ng$"
+  },
+  {
+    "name": "Augustine University",
+    "shortcode": "AUI",
+    "placeholder": "yourname@augustineuniversity.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@augustineuniversity\\.edu\\.ng$"
+  },
+  {
+    "name": "Anchor University Lagos",
+    "shortcode": "AUL",
+    "placeholder": "yourname@aul.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@aul\\.edu\\.ng$"
+  },
+  {
+    "name": "Eko University of Medicine and Health Sciences",
+    "shortcode": "EKOUNIMED",
+    "placeholder": "yourname@ekounimed.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@ekounimed\\.edu\\.ng$"
+  },
+  {
+    "name": "James Hope University",
+    "shortcode": "JHU",
+    "placeholder": "yourname@jhu.edu.ng",
+    "emailPattern": "^[A-Za-z0-9._%+-]+@jhu\\.edu\\.ng$"
   }
 ]
