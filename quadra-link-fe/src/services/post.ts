@@ -2,11 +2,9 @@ import { apiFetch } from "@/lib/api";
 import type { Post, Comment, Like, SuccessResponse } from "@/types";
 
 
-export async function getPosts(page = 1, limit = 10) {
-  return apiFetch(
-    `/posts?page=${page}&limit=${limit}`,
-    { method: "GET" }
-  );
+export async function getPosts(page = 1, limit = 10): Promise<{ data: Post[]; total: number; page: number; limit: number }> {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return apiFetch(`/posts?${params.toString()}`, { method: "GET" });
 }
 
 export function createPost(

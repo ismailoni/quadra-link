@@ -22,18 +22,14 @@ export default function FeedPage() {
     if (loading || !hasMore) return;
     setLoading(true);
 
-    ctrlRef.current?.abort();
-    const ctrl = new AbortController();
-    ctrlRef.current = ctrl;
-
     try {
-      const res = await getPosts(page, 10);
+      const res = await getPosts(page, 10); 
       setPosts((prev) => [...prev, ...res.data]);
       setHasMore(res.page * res.limit < res.total);
     } catch (e: any) {
       if (e?.name !== "AbortError") toast.error(e?.message || "Failed to load posts");
     } finally {
-      if (!ctrl.signal.aborted) setLoading(false);
+      setLoading(false);
     }
   }, [page, hasMore, loading]);
 
