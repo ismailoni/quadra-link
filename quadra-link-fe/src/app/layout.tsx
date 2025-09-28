@@ -32,17 +32,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider>
-      <html lang="en">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} antialiased`}
-        >
-          <Navbar />
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} antialiased`}
+      >
+        <Navbar />
+        <AuthProvider>
           {children}
-
-          <Toaster richColors position="top-center" />
-        </body>
-      </html>
-    </AuthProvider>
+          <Toaster richColors position="top-right" />
+        </AuthProvider>
+      </body>
+    </html>
   );
 }

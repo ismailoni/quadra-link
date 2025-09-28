@@ -1,6 +1,6 @@
 // src/app/login/page.tsx
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { login } from "@/services/auth";
 import { useUser } from "@/hooks/useUser";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const ctrlRef = useRef<AbortController | null>(null);
 
   const { user, loading } = useUser();
   const router = useRouter();
@@ -27,26 +28,36 @@ export default function LoginPage() {
     setError("");
     setSubmitting(true);
 
+    ctrlRef.current?.abort();
+    ctrlRef.current = new AbortController();
+
     try {
-      await login({ email, password });
+      await login(
+        { email, password },
+        { signal: ctrlRef.current.signal, timeoutMs: 15000 }
+      );
 
       toast.success("Login Successful 🎉", {
         description: "Redirecting you to your feed...",
       });
 
-      setTimeout(() => {
-        router.push("/feed");
-      }, 1200);
+      setTimeout(() => router.push("/feed"), 1200);
     } catch (err: any) {
-      setError(err.message);
+      if (err?.name === "AbortError" || err?.name === "CanceledError") {
+        toast.message("Login canceled");
+      } else {
+        setError(err.message || "Login failed");
 
-      toast.error("Login Failed", {
-        description: err.message || "Something went wrong",
-      });
+        toast.error("Login Failed", {
+          description: err?.message || "Something went wrong",
+        });
+      }
     } finally {
       setSubmitting(false);
     }
   }
+
+  useEffect(() => () => ctrlRef.current?.abort(), []);
 
   // show spinner while checking session
   if (loading) {

@@ -13,18 +13,18 @@ export type ApiFetchOptions = RequestInit & {
 const respCache = new Map<string, { expiry: number; data: any }>();
 const inFlight = new Map<string, Promise<any>>();
 
-function keyFor(method: string, url: string) {
-  return `${method.toUpperCase()} ${url}`;
+function keyFor(method: string, url: string, body?: any) {
+  return `${method.toUpperCase()} ${url}${body ? ` ${JSON.stringify(body)}` : ""}`;
 }
 
 export function invalidateApiCache(prefix = "/") {
   for (const k of [...respCache.keys()]) {
-    const [, url] = k.split(" ");
     try {
+      const url = k.split(" ").slice(1).join(" ");
       const u = new URL(url);
       if (u.pathname.startsWith(prefix)) respCache.delete(k);
     } catch {
-      if (url.includes(prefix)) respCache.delete(k);
+      if (k.includes(prefix)) respCache.delete(k);
     }
   }
 }
@@ -33,57 +33,43 @@ export function clearApiCache() {
   respCache.clear();
 }
 
-export async function apiFetch<T = any>(
-  endpoint: string,
-  options: ApiFetchOptions = {}
-): Promise<T> {
+export async function apiFetch<T = any>(endpoint: string, options: ApiFetchOptions = {}): Promise<T> {
   const method = (options.method || "GET").toUpperCase();
   const url = `${API_BASE}${endpoint}`;
+
   const useCache = method === "GET" && options.skipCache !== true;
   const cacheTtl = options.cacheTtl ?? (useCache ? 15_000 : 0);
   const dedupe = options.dedupe ?? true;
   const timeoutMs = options.timeoutMs ?? 15_000;
+  const retries = options.retries ?? (method === "GET" ? 2 : 0);
+
+  const token = getToken();
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  let body: any = options.body;
+  if (body && !isFormData && typeof body !== "string") body = JSON.stringify(body);
 
   const cacheKey = keyFor("GET", url);
-
-  // Serve fresh-enough cache for GET
   if (useCache && cacheTtl > 0) {
     const cached = respCache.get(cacheKey);
-    if (cached && cached.expiry > Date.now()) {
-      return Promise.resolve(cached.data as T);
-    }
+    if (cached && cached.expiry > Date.now()) return cached.data as T;
   }
 
-  // Coalesce identical in-flight requests
+  const flightKey = keyFor(method, url, method === "GET" ? undefined : body);
   if (dedupe) {
-    const flightKey = keyFor(method, url + (method !== "GET" ? JSON.stringify(options.body ?? "") : ""));
     const inflight = inFlight.get(flightKey);
-    if (inflight) return inflight;
+    if (inflight) return inflight as Promise<T>;
   }
 
-  // Timeout + abort handling
+  // Abort/timeout merge
   const controller = new AbortController();
   const userSignal = options.signal;
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const signal =
-    userSignal && "addEventListener" in (userSignal as any)
-      ? (function merge() {
-          if ((userSignal as AbortSignal).aborted) controller.abort();
-          (userSignal as AbortSignal).addEventListener("abort", () => controller.abort());
-          return controller.signal;
-        })()
-      : controller.signal;
-
-  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
-  const token = getToken();
-
-  // Auto-stringify plain JSON bodies
-  let body = options.body as any;
-  if (body && !isFormData && typeof body !== "string") {
-    body = JSON.stringify(body);
+  if (userSignal) {
+    if ((userSignal as AbortSignal).aborted) controller.abort();
+    (userSignal as AbortSignal).addEventListener("abort", () => controller.abort(), { once: true });
   }
 
-  async function doAttempt(attempt: number): Promise<T> {
+  async function attempt(n: number): Promise<T> {
     const res = await fetch(url, {
       ...options,
       headers: {
@@ -92,34 +78,26 @@ export async function apiFetch<T = any>(
         ...(options.headers || {}),
       },
       body,
-      signal,
+      signal: controller.signal,
     });
 
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      const err = new Error(errorData.message || `API error: ${res.status}`);
       // Retry GETs on 5xx
-      if (
-        method === "GET" &&
-        (res.status >= 500 && res.status < 600) &&
-        attempt < (options.retries ?? 2)
-      ) {
-        const backoff = 300 * 2 ** attempt + Math.random() * 100;
+      if (method === "GET" && res.status >= 500 && res.status < 600 && n < retries) {
+        const backoff = 250 * 2 ** n + Math.random() * 100;
         await new Promise((r) => setTimeout(r, backoff));
-        return doAttempt(attempt + 1);
+        return attempt(n + 1);
       }
-      throw err;
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || `API error: ${res.status}`);
     }
 
-    // 204 No Content
     if (res.status === 204) return undefined as T;
-
     const json = await res.json();
 
     if (useCache && cacheTtl > 0) {
       respCache.set(cacheKey, { expiry: Date.now() + cacheTtl, data: json });
     } else if (method !== "GET") {
-      // Invalidate affected resource family on mutations
       try {
         const u = new URL(url);
         const prefix = "/" + (u.pathname.split("/")[1] ?? "");
@@ -133,18 +111,13 @@ export async function apiFetch<T = any>(
     return json as T;
   }
 
-  const fetchPromise = doAttempt(0)
+  const fetchPromise = attempt(0)
     .finally(() => {
-      const flightKey = keyFor(method, url + (method !== "GET" ? JSON.stringify(options.body ?? "") : ""));
       inFlight.delete(flightKey);
       clearTimeout(timeout);
     });
 
-  if (dedupe) {
-    const flightKey = keyFor(method, url + (method !== "GET" ? JSON.stringify(options.body ?? "") : ""));
-    inFlight.set(flightKey, fetchPromise);
-  }
-
+  if (dedupe) inFlight.set(flightKey, fetchPromise);
   return fetchPromise;
 }
 

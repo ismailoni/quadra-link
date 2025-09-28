@@ -7,6 +7,7 @@ import type { Post } from "@/types";
 import PostCard from "@/components/PostCard";
 import PostSheet from "@/components/PostSheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -15,18 +16,30 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
+  const ctrlRef = useRef<AbortController | null>(null);
+
   const fetchPosts = useCallback(async () => {
     if (loading || !hasMore) return;
     setLoading(true);
 
-    const res = await getPosts(page, 10);
-    setPosts((prev) => [...prev, ...res.data]);
-    setHasMore(res.page * res.limit < res.total);
-    setLoading(false);
+    ctrlRef.current?.abort();
+    const ctrl = new AbortController();
+    ctrlRef.current = ctrl;
+
+    try {
+      const res = await getPosts(page, 10, { cacheTtl: 5_000, retries: 2, signal: ctrl.signal });
+      setPosts((prev) => [...prev, ...res.data]);
+      setHasMore(res.page * res.limit < res.total);
+    } catch (e: any) {
+      if (e?.name !== "AbortError") toast.error(e?.message || "Failed to load posts");
+    } finally {
+      if (!ctrl.signal.aborted) setLoading(false);
+    }
   }, [page, hasMore, loading]);
 
   useEffect(() => {
     fetchPosts();
+    return () => ctrlRef.current?.abort();
   }, [fetchPosts]);
 
   const loaderRef = useRef<HTMLDivElement | null>(null);

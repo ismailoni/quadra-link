@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import schools from "@/data/schools.json";
+import { apiFetch } from "@/lib/api";
 
 const baseSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -24,6 +25,7 @@ export default function SignupPage() {
   const [selectedSchool, setSelectedSchool] = useState(schools[0]);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const ctrlRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (user) window.location.href = "/feed";
@@ -77,27 +79,21 @@ export default function SignupPage() {
 
   const onSubmit = async (data: any) => {
     setLoading(true);
-
+    ctrlRef.current?.abort();
+    ctrlRef.current = new AbortController();
     try {
-      const res = await fetch("http://localhost:5000/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok) {
-        const { message } = await res.json();
-        throw new Error(message || "Signup failed");
-      }
-
+      await apiFetch("/users", { method: "POST", body: data, timeoutMs: 20_000, dedupe: false, retries: 0, signal: ctrlRef.current.signal });
       toast.success("Account created! Redirecting to login...");
-      setTimeout(() => (window.location.href = "/login"), 2000);
+      setTimeout(() => (window.location.href = "/login"), 1200);
     } catch (err: any) {
-      toast.error(err.message);
+      if (err?.name === "AbortError") toast.message("Signup canceled");
+      else toast.error(err?.message || "Signup failed");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => () => ctrlRef.current?.abort(), []);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">

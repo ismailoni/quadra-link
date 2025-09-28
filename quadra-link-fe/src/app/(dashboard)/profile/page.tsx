@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,13 +27,15 @@ const ProfilePage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
-    firstname: user?.firstname || '',
-    lastname: user?.lastname || '',
-    pseudoname: user?.pseudoname || '',
+    firstname: user?.Firstname || '',
+    lastname: user?.Lastname || '',
+    pseudoname: user?.Pseudoname || '',
     department: user?.department || '',
     bio: user?.bio || '',
     level: user?.level || '',
   });
+  const submitCtrl = useRef<AbortController | null>(null);
+  const deleteCtrl = useRef<AbortController | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -43,13 +45,16 @@ const ProfilePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    submitCtrl.current?.abort();
+    submitCtrl.current = new AbortController();
     try {
-      const updatedUser = await updateUser(formData);
-      setUser(updatedUser);
+      const updatedUser = await updateUser(formData, { signal: submitCtrl.current.signal, timeoutMs: 20_000 });
+      setUser(updatedUser ?? null);
       setOpen(false);
       toast.success('Profile updated successfully!');
-    } catch {
-      toast.error('Failed to update profile.');
+    } catch (err: any) {
+      if (err?.name === 'AbortError') toast.message('Update canceled');
+      else toast.error(err?.message || 'Failed to update profile.');
     } finally {
       setSaving(false);
     }
@@ -57,13 +62,16 @@ const ProfilePage: React.FC = () => {
 
   const handleDelete = async () => {
     setDeleting(true);
+    deleteCtrl.current?.abort();
+    deleteCtrl.current = new AbortController();
     try {
-      await deleteUser();
+      await deleteUser({ signal: deleteCtrl.current.signal, timeoutMs: 20_000 });
       setUser(null);
       toast.success('Account deleted.');
       window.location.href = '/login';
-    } catch {
-      toast.error('Failed to delete account.');
+    } catch (err: any) {
+      if (err?.name === 'AbortError') toast.message('Deletion canceled');
+      else toast.error(err?.message || 'Failed to delete account.');
     } finally {
       setDeleting(false);
     }
@@ -108,13 +116,13 @@ const ProfilePage: React.FC = () => {
           {/* Profile Header */}
           <div className="flex items-center gap-6">
             <Avatar className="h-20 w-20 border-2 ring-2 ring-blue-500">
-              <AvatarImage src={user.avatar || '/default-avatar.png'} alt={user.fullname} />
+              <AvatarImage src={user.avatar || '/default-avatar.png'} alt={user.Fullname} />
               <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xl">
-                {user.firstname?.charAt(0) ?? 'U'}
+                {user.Firstname?.charAt(0) ?? 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-2xl font-bold">{user.fullname}</h1>
+              <h1 className="text-2xl font-bold">{user.Fullname}</h1>
               <Badge variant="outline" className="mt-1">{user.role}</Badge>
             </div>
           </div>

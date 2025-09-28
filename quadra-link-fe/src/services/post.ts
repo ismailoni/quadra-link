@@ -1,21 +1,16 @@
 import { apiFetch, type ApiFetchOptions } from "@/lib/api";
 import type { Post, Comment, Like, SuccessResponse } from "@/types";
 
-export async function getPosts(
-  page = 1,
-  limit = 10,
-  options: ApiFetchOptions = {}
-): Promise<{
-  data: Post[];
-  total: number;
-  page: number;
-  limit: number;
-}> {
-  return apiFetch(`/posts?page=${page}&limit=${limit}`, {
-    cacheTtl: options.cacheTtl ?? 5_000,
-    dedupe: options.dedupe ?? true,
-    timeoutMs: options.timeoutMs ?? 15_000,
-    signal: options.signal,
+type FetchOpts = Pick<ApiFetchOptions, "signal" | "timeoutMs" | "dedupe" | "cacheTtl" | "retries">;
+
+export async function getPosts(page = 1, limit = 10, opts: FetchOpts = {}) {
+  const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return apiFetch(`/posts?${qs.toString()}`, {
+    cacheTtl: opts.cacheTtl ?? 5_000,
+    dedupe: opts.dedupe ?? true,
+    retries: opts.retries ?? 2,
+    timeoutMs: opts.timeoutMs ?? 15_000,
+    signal: opts.signal,
   });
 }
 
@@ -40,8 +35,8 @@ export function updatePost(
   });
 }
 
-export function deletePost(id: string): Promise<SuccessResponse> {
-  return apiFetch(`/posts/${id}`, { method: "DELETE" });
+export async function deletePost(id: string | number, opts: FetchOpts = {}) {
+  return apiFetch(`/posts/${id}`, { method: "DELETE", dedupe: false, timeoutMs: opts.timeoutMs ?? 15_000, signal: opts.signal });
 }
 
 export function addComment(postId: string, content: string): Promise<Comment> {
@@ -55,16 +50,10 @@ export function deleteComment(commentId: string): Promise<SuccessResponse> {
   return apiFetch(`/posts/comment/${commentId}`, { method: "DELETE" });
 }
 
-export function likePost(postId: string): Promise<Like> {
-  return apiFetch("/posts/like", {
-    method: "POST",
-    body: JSON.stringify({ postId }),
-  });
+export async function likePost(postId: string | number, opts: FetchOpts = {}) {
+  return apiFetch(`/posts/${postId}/like`, { method: "POST", dedupe: false, timeoutMs: opts.timeoutMs ?? 10_000, signal: opts.signal });
 }
 
-export function unlikePost(postId: string): Promise<SuccessResponse> {
-  return apiFetch("/posts/unlike", {
-    method: "POST",
-    body: JSON.stringify({ postId }),
-  });
+export async function unlikePost(postId: string | number, opts: FetchOpts = {}) {
+  return apiFetch(`/posts/${postId}/like`, { method: "DELETE", dedupe: false, timeoutMs: opts.timeoutMs ?? 10_000, signal: opts.signal });
 }

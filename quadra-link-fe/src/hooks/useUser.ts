@@ -16,19 +16,22 @@ export function useUser() {
 
   const updateUser = async (updates: Partial<User> | FormData, opts: ApiFetchOptions = {}) => {
     if (!user) return;
-    const updatedUser = await apiFetch<User>(`/users/${user.id}`, {
+    const isFormData = updates instanceof FormData;
+    const updated = await apiFetch<User>(`/users/${user.id}`, {
       method: 'PATCH',
-      body: updates, // apiFetch will stringify non-FormData
-      retries: 0,
-      ...opts,
+      body: isFormData ? updates : JSON.stringify(updates),
+      headers: isFormData ? undefined : { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      dedupe: false,
+      timeoutMs: opts.timeoutMs ?? 20_000,
+      signal: opts.signal,
     });
-    setUser(updatedUser);
-    return updatedUser;
+    setUser(updated);
+    return updated;
   };
 
-  const deleteUser = async () => {
+  const deleteUser = async (opts: ApiFetchOptions = {}) => {
     if (!user) return;
-    await apiFetch(`/users/${user.id}`, { method: 'DELETE' });
+    await apiFetch(`/users/${user.id}`, { method: 'DELETE', dedupe: false, timeoutMs: opts.timeoutMs ?? 20_000, signal: opts.signal });
     setUser(null);
     logout();
     return true;
