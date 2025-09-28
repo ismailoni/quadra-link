@@ -19,15 +19,17 @@ export interface AuthResponse {
     // Optionally add user info if returned by backend
 }
 
-export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials);
-    // Store token in localStorage
-    if (response.data.access_token) {
-        localStorage.setItem('authToken', response.data.access_token);
-    }
-    return response.data;
+export const login = async (
+  credentials: LoginCredentials,
+  opts: { signal?: AbortSignal; timeoutMs?: number } = {}
+): Promise<AuthResponse> => {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials, {
+    signal: opts.signal as any, // axios supports AbortController
+    timeout: opts.timeoutMs ?? 15000,
+  });
+  return response.data;
 };
-
 export const getToken = (): string | null => {
     return localStorage.getItem('authToken');
 };

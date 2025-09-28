@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import type { User } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, type ApiFetchOptions } from '@/lib/api';
 
 export function useUser() {
   const { user, setUser, loading, error, token, fetchUser, logout } = useAuth();
@@ -14,11 +14,13 @@ export function useUser() {
     }
   }, [token, user, fetchUser]);
 
-  const updateUser = async (updates: Partial<User>) => {
+  const updateUser = async (updates: Partial<User> | FormData, opts: ApiFetchOptions = {}) => {
     if (!user) return;
     const updatedUser = await apiFetch<User>(`/users/${user.id}`, {
       method: 'PATCH',
-      body: JSON.stringify(updates),
+      body: updates, // apiFetch will stringify non-FormData
+      retries: 0,
+      ...opts,
     });
     setUser(updatedUser);
     return updatedUser;

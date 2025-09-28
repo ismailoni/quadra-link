@@ -1,15 +1,23 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, type ApiFetchOptions } from "@/lib/api";
 import type { Post, Comment, Like, SuccessResponse } from "@/types";
 
-export async function getPosts(page = 1, limit = 10): Promise<{
+export async function getPosts(
+  page = 1,
+  limit = 10,
+  options: ApiFetchOptions = {}
+): Promise<{
   data: Post[];
   total: number;
   page: number;
   limit: number;
 }> {
-  return apiFetch(`/posts?page=${page}&limit=${limit}`);
+  return apiFetch(`/posts?page=${page}&limit=${limit}`, {
+    cacheTtl: options.cacheTtl ?? 5_000,
+    dedupe: options.dedupe ?? true,
+    timeoutMs: options.timeoutMs ?? 15_000,
+    signal: options.signal,
+  });
 }
-
 
 export function createPost(
   content: string,
@@ -36,7 +44,7 @@ export function deletePost(id: string): Promise<SuccessResponse> {
   return apiFetch(`/posts/${id}`, { method: "DELETE" });
 }
 
-export function addComment(postId: string, content: string, ):Promise<Comment> {
+export function addComment(postId: string, content: string): Promise<Comment> {
   return apiFetch("/posts/comment", {
     method: "POST",
     body: JSON.stringify({ postId, content }), // <-- use 'content'

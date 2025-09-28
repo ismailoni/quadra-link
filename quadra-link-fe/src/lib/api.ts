@@ -2,11 +2,12 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 import { getToken } from "@/services/auth";
 
-type ApiFetchOptions = RequestInit & {
-  cacheTtl?: number;   // ms for GET cache (default 15s)
-  timeoutMs?: number;  // abort after (default 15s)
-  dedupe?: boolean;    // coalesce identical in-flight requests (default true)
-  skipCache?: boolean; // bypass GET cache
+export type ApiFetchOptions = RequestInit & {
+  cacheTtl?: number;
+  timeoutMs?: number;
+  dedupe?: boolean;
+  skipCache?: boolean;
+  retries?: number; // number of retry attempts for GET (default 2)
 };
 
 const respCache = new Map<string, { expiry: number; data: any }>();
@@ -73,42 +74,70 @@ export async function apiFetch<T = any>(
         })()
       : controller.signal;
 
-  const fetchPromise = fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-      ...options.headers,
-    },
-    signal,
-  })
-    .then(async (res) => {
-      clearTimeout(timeout);
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `API error: ${res.status}`);
-      }
-      const json = await res.json();
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  const token = getToken();
 
-      if (useCache && cacheTtl > 0) {
-        respCache.set(cacheKey, { expiry: Date.now() + cacheTtl, data: json });
-      } else if (method !== "GET") {
-        // Invalidate affected resource family on mutations
-        try {
-          const u = new URL(url);
-          const prefix = "/" + (u.pathname.split("/")[1] ?? "");
-          invalidateApiCache(prefix);
-        } catch {
-          const prefix = "/" + endpoint.split("?")[0].split("/")[1];
-          invalidateApiCache(prefix);
-        }
-      }
+  // Auto-stringify plain JSON bodies
+  let body = options.body as any;
+  if (body && !isFormData && typeof body !== "string") {
+    body = JSON.stringify(body);
+  }
 
-      return json as T;
-    })
+  async function doAttempt(attempt: number): Promise<T> {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+      body,
+      signal,
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const err = new Error(errorData.message || `API error: ${res.status}`);
+      // Retry GETs on 5xx
+      if (
+        method === "GET" &&
+        (res.status >= 500 && res.status < 600) &&
+        attempt < (options.retries ?? 2)
+      ) {
+        const backoff = 300 * 2 ** attempt + Math.random() * 100;
+        await new Promise((r) => setTimeout(r, backoff));
+        return doAttempt(attempt + 1);
+      }
+      throw err;
+    }
+
+    // 204 No Content
+    if (res.status === 204) return undefined as T;
+
+    const json = await res.json();
+
+    if (useCache && cacheTtl > 0) {
+      respCache.set(cacheKey, { expiry: Date.now() + cacheTtl, data: json });
+    } else if (method !== "GET") {
+      // Invalidate affected resource family on mutations
+      try {
+        const u = new URL(url);
+        const prefix = "/" + (u.pathname.split("/")[1] ?? "");
+        invalidateApiCache(prefix);
+      } catch {
+        const prefix = "/" + endpoint.split("?")[0].split("/")[1];
+        invalidateApiCache(prefix);
+      }
+    }
+
+    return json as T;
+  }
+
+  const fetchPromise = doAttempt(0)
     .finally(() => {
       const flightKey = keyFor(method, url + (method !== "GET" ? JSON.stringify(options.body ?? "") : ""));
       inFlight.delete(flightKey);
+      clearTimeout(timeout);
     });
 
   if (dedupe) {
