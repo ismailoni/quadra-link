@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import type { User } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import { apiFetch, type ApiFetchOptions } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 export function useUser() {
   const { user, setUser, loading, error, token, fetchUser, logout } = useAuth();
@@ -14,24 +14,20 @@ export function useUser() {
     }
   }, [token, user, fetchUser]);
 
-  const updateUser = async (updates: Partial<User> | FormData, opts: ApiFetchOptions = {}) => {
+  const updateUser = async (updates: Partial<User>) => {
     if (!user) return;
     const isFormData = updates instanceof FormData;
-    const updated = await apiFetch<User>(`/users/${user.id}`, {
+    const updated = await apiFetch(`/users/${user.id}`, {
       method: 'PATCH',
       body: isFormData ? updates : JSON.stringify(updates),
-      headers: isFormData ? undefined : { 'Content-Type': 'application/json', ...(opts.headers || {}) },
-      dedupe: false,
-      timeoutMs: opts.timeoutMs ?? 20_000,
-      signal: opts.signal,
     });
     setUser(updated);
     return updated;
   };
 
-  const deleteUser = async (opts: ApiFetchOptions = {}) => {
+  const deleteUser = async () => {
     if (!user) return;
-    await apiFetch(`/users/${user.id}`, { method: 'DELETE', dedupe: false, timeoutMs: opts.timeoutMs ?? 20_000, signal: opts.signal });
+    await apiFetch(`/users/${user.id}`, { method: 'DELETE'});
     setUser(null);
     logout();
     return true;

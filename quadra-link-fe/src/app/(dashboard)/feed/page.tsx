@@ -27,7 +27,7 @@ export default function FeedPage() {
     ctrlRef.current = ctrl;
 
     try {
-      const res = await getPosts(page, 10, { cacheTtl: 5_000, retries: 2, signal: ctrl.signal });
+      const res = await getPosts(page, 10);
       setPosts((prev) => [...prev, ...res.data]);
       setHasMore(res.page * res.limit < res.total);
     } catch (e: any) {

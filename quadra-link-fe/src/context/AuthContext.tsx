@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     try {
-      const u = await apiFetch<User>("/users/me", { cacheTtl: 60_000, dedupe: true });
+      const u = await apiFetch("/users/me");
       setUser(u);
     } catch (e: any) {
       setError(e?.message || "Failed to fetch user");

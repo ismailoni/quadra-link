@@ -79,21 +79,18 @@ export default function SignupPage() {
 
   const onSubmit = async (data: any) => {
     setLoading(true);
-    ctrlRef.current?.abort();
-    ctrlRef.current = new AbortController();
+    
     try {
-      await apiFetch("/users", { method: "POST", body: data, timeoutMs: 20_000, dedupe: false, retries: 0, signal: ctrlRef.current.signal });
+      await apiFetch("/users", { method: "POST", body: data});
       toast.success("Account created! Redirecting to login...");
       setTimeout(() => (window.location.href = "/login"), 1200);
     } catch (err: any) {
-      if (err?.name === "AbortError") toast.message("Signup canceled");
-      else toast.error(err?.message || "Signup failed");
+      toast.error(err?.message || "Signup failed");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => () => ctrlRef.current?.abort(), []);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">

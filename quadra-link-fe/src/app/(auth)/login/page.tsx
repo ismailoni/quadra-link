@@ -11,7 +11,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const ctrlRef = useRef<AbortController | null>(null);
 
   const { user, loading } = useUser();
   const router = useRouter();
@@ -28,13 +27,10 @@ export default function LoginPage() {
     setError("");
     setSubmitting(true);
 
-    ctrlRef.current?.abort();
-    ctrlRef.current = new AbortController();
 
     try {
       await login(
-        { email, password },
-        { signal: ctrlRef.current.signal, timeoutMs: 15000 }
+        { email, password }
       );
 
       toast.success("Login Successful 🎉", {
@@ -57,7 +53,6 @@ export default function LoginPage() {
     }
   }
 
-  useEffect(() => () => ctrlRef.current?.abort(), []);
 
   // show spinner while checking session
   if (loading) {

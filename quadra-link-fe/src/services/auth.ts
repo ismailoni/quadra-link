@@ -6,20 +6,20 @@ export type LoginCredentials = { email: string; password: string };
 export type AuthResponse = { token: string };
 
 export async function login(
-  credentials: LoginCredentials,
-  opts: { signal?: AbortSignal; timeoutMs?: number } = {}
+  credentials: LoginCredentials
 ): Promise<AuthResponse> {
-  const res = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials, {
-    signal: opts.signal as any,
-    timeout: opts.timeoutMs ?? 15000,
-  });
-  return res.data;
+  const response = await axios.post<AuthResponse>(
+    `${API_URL}/auth/login`,
+    credentials
+  );
+  return response.data;
 }
 
-export const getToken = (): string | null => {
+export function getToken(): string | null {
   return localStorage.getItem("authToken");
-};
+}
 
-export const logout = (): void => {
+
+export function logout(): void {
   localStorage.removeItem("authToken");
-};
+}
