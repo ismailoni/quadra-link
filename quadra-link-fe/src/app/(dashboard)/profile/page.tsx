@@ -34,8 +34,6 @@ const ProfilePage: React.FC = () => {
     bio: user?.bio || '',
     level: user?.level || '',
   });
-  const submitCtrl = useRef<AbortController | null>(null);
-  const deleteCtrl = useRef<AbortController | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -45,10 +43,8 @@ const ProfilePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    submitCtrl.current?.abort();
-    submitCtrl.current = new AbortController();
     try {
-      const updatedUser = await updateUser(formData, { signal: submitCtrl.current.signal, timeoutMs: 20_000 });
+      const updatedUser = await updateUser(formData);
       setUser(updatedUser ?? null);
       setOpen(false);
       toast.success('Profile updated successfully!');
@@ -62,10 +58,9 @@ const ProfilePage: React.FC = () => {
 
   const handleDelete = async () => {
     setDeleting(true);
-    deleteCtrl.current?.abort();
-    deleteCtrl.current = new AbortController();
+    
     try {
-      await deleteUser({ signal: deleteCtrl.current.signal, timeoutMs: 20_000 });
+      await deleteUser();
       setUser(null);
       toast.success('Account deleted.');
       window.location.href = '/login';
@@ -171,12 +166,12 @@ const ProfilePage: React.FC = () => {
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                  <Input name="firstname" value={formData.firstname} onChange={handleChange} placeholder="First name" />
-                  <Input name="lastname" value={formData.lastname} onChange={handleChange} placeholder="Last name" />
-                  <Input name="pseudoname" value={formData.pseudoname} onChange={handleChange} placeholder="Pseudoname" />
-                  <Input name="department" value={formData.department} onChange={handleChange} placeholder="Department" />
-                  <Input name="level" value={formData.level} onChange={handleChange} placeholder="Level" />
-                  <Textarea name="bio" value={formData.bio} onChange={handleChange} placeholder="Write a short bio..." />
+                  <Input name="firstname" value={user.Firstname} onChange={handleChange} placeholder="First name" />
+                  <Input name="lastname" value={user.Lastname} onChange={handleChange} placeholder="Last name" />
+                  <Input name="pseudoname" value={user.Pseudoname} onChange={handleChange} placeholder="Pseudoname" />
+                  <Input name="department" value={user.department} onChange={handleChange} placeholder="Department" />
+                  <Input name="level" value={user.level} onChange={handleChange} placeholder="Level" />
+                  <Textarea name="bio" value={user.bio} onChange={handleChange} placeholder="Write a short bio..." />
                   <DialogFooter>
                     <Button type="submit" disabled={saving}>
                       {saving ? 'Saving...' : 'Save Changes'}
