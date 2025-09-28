@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, Heart, Repeat, Share } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { toast } from "sonner"; // ← add
 
 export default function PostSheet({
   post,
@@ -34,44 +35,82 @@ export default function PostSheet({
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  // Abort controllers + busy guard
+  const likeCtrl = useRef<AbortController | null>(null);      // ← add
+  const commentCtrl = useRef<AbortController | null>(null);   // ← add
+  const likeBusyRef = useRef(false);                          // ← add
+
   useEffect(() => {
     if (post) {
       setComments(post.comments || []);
       setLikesCount(post.likesCount ?? 0);
       setLiked(isLiked(post, userId));
     }
-  }, [post]);
+  }, [post, userId]); // ← include userId
+
+  // Cleanup on unmount
+  useEffect(() => {                                          // ← add
+    return () => {
+      likeCtrl.current?.abort();
+      commentCtrl.current?.abort();
+    };
+  }, []);
 
   if (!post) return null;
 
   async function handleComment() {
     if (!comment.trim() || !post) return;
     try {
+      // cancel any in-flight comment request
+      commentCtrl.current?.abort();                          // ← add
+      commentCtrl.current = new AbortController();           // ← add
+
       const newComment = await addComment(post.id, comment);
       setComments((prev) => [...prev, newComment]);
       setComment("");
-    } catch (err) {
+      toast.success("Comment added");                        // ← add
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;               // ← add
+      toast.error(err?.message || "Failed to add comment");  // ← add
       console.error("Failed to add comment:", err);
     }
   }
 
   async function handleLike() {
-    if (!post) return;
+    if (!post || likeBusyRef.current) return;                // ← add busy guard
+    likeBusyRef.current = true;                              // ← add
     try {
+      // cancel any in-flight like/unlike
+      likeCtrl.current?.abort();                             // ← add
+      likeCtrl.current = new AbortController();              // ← add
+
       if (liked) {
         setLiked(false);
-        setLikesCount((c) => c - 1);
-        await unlikePost(post.id);
+        setLikesCount((c) => Math.max(0, c - 1));            // ← safe decrement
+        await unlikePost(post.id, {
+          signal: likeCtrl.current.signal,                   // ← add
+          timeoutMs: 10_000,                                 // ← add
+        } as any);
+        toast.success("Post unliked");                       // ← add
       } else {
         setLiked(true);
         setLikesCount((c) => c + 1);
-        await likePost(post.id);
+        await likePost(post.id, {
+          signal: likeCtrl.current.signal,                   // ← add
+          timeoutMs: 10_000,                                 // ← add
+        } as any);
+        toast.success("Post liked");                         // ← add
       }
-    } catch (err) {
-      // rollback
-      setLiked(isLiked(post, userId));
-      setLikesCount(post.likesCount ?? 0);
-      console.error("Failed to like/unlike:", err);
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        // rollback
+        setLiked(isLiked(post, userId));
+        setLikesCount(post.likesCount ?? 0);
+        toast.error(err?.message || "Failed to update like"); // ← add
+        console.error("Failed to like/unlike:", err);
+      }
+    } finally {
+      likeBusyRef.current = false;                           // ← add
     }
   }
 
@@ -90,10 +129,10 @@ export default function PostSheet({
         <div className="mt-4 p-4 border-b">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600">
-              {post.author?.avatar ?? post.author?.pseudoname?.[0] ?? "U"}
+              {post.author?.avatar ?? post.author?.Pseudoname?.[0] ?? "U"}
             </div>
             <div className="flex-1">
-              <div className="font-semibold">{post.author?.pseudoname}</div>
+              <div className="font-semibold">{post.author?.Pseudoname}</div>
               <p className="mt-2 text-gray-800 text-lg">{post.content}</p>
             </div>
           </div>
@@ -133,11 +172,11 @@ export default function PostSheet({
           {comments.map((c) => (
             <div key={c.id} className="flex items-start gap-2">
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs">
-                {c.author?.avatar ?? c.author?.pseudoname?.[0] ?? "U"}
+                {c.author?.avatar ?? c.author?.Pseudoname?.[0] ?? "U"}
               </div>
               <div className="flex-1 border rounded-lg p-2 bg-gray-50">
                 <span className="font-semibold">
-                  {c.author?.fullname ?? (c.author?.id ?? "Unknown User")}
+                  {c.author?.Fullname ?? (c.author?.id ?? "Unknown User")}
                 </span>
                 <p className="text-sm">{c.content}</p>
               </div>

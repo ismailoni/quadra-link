@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MessageCircle, Heart, Repeat, Share } from "lucide-react";
 import type { Post } from "@/types";
 import { useUser } from "@/hooks/useUser";
@@ -24,25 +24,55 @@ export default function PostCard({
   const [liked, setLiked] = useState(isLiked(post, userId));
   const [likesCount, setLikesCount] = useState(post.likesCount ?? 0);
 
+  const likeCtrlRef = useRef<AbortController | null>(null);
+  const likeBusyRef = useRef(false);                       
+  useEffect(() => {                                   
+    return () => {
+      likeCtrlRef.current?.abort();
+    };
+  }, []);
+
   async function handleLike(e: React.MouseEvent) {
     e.stopPropagation();
+    if (likeBusyRef.current) return;                       
+    likeBusyRef.current = true;          
+
+    // cancel previous like in-flight
+    likeCtrlRef.current?.abort();                 
+    likeCtrlRef.current = new AbortController();  
+
     try {
       if (liked) {
         setLiked(false);
-        setLikesCount((c) => c - 1);
-        await unlikePost(post.id);
-        toast.success("Post unliked");
+        setLikesCount((c) => Math.max(0, c - 1));           
+        await unlikePost(post.id, {
+          signal: likeCtrlRef.current.signal,    
+          timeoutMs: 10_000,                      
+        } as any);
+        toast.success("Post unliked");                   
       } else {
         setLiked(true);
         setLikesCount((c) => c + 1);
-        await likePost(post.id);
-        toast.success("Post liked");
+        await likePost(post.id, {
+          signal: likeCtrlRef.current.signal,         
+          timeoutMs: 10_000,                               
+        } as any);
+        toast.success("Post liked");                       
       }
-    } catch (err) {
-      setLiked(isLiked(post, userId));
-      setLikesCount(post.likesCount ?? 0);
-      toast.error("Failed to like/unlike post");
-      console.error("Failed to like/unlike:", err);
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        // rollback to current state of post if needed
+        setLiked(isLiked(post, userId));
+        setLikesCount(post.likesCount ?? 0);
+        // no error toast on cancel
+      } else {
+        setLiked(isLiked(post, userId));
+        setLikesCount(post.likesCount ?? 0);
+        toast.error(err?.message || "Failed to like/unlike post"); 
+        console.error("Failed to like/unlike:", err);
+      }
+    } finally {
+      likeBusyRef.current = false;                         
     }
   }
 
@@ -59,14 +89,14 @@ export default function PostCard({
       <div className="flex items-start gap-3">
         {/* Avatar */}
         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 text-lg">
-          {post.author?.avatar ?? post.author?.pseudoname?.[0] ?? "U"}
+          {post.author?.avatar ?? post.author?.Pseudoname?.[0] ?? "U"}
         </div>
 
         {/* Post content */}
         <div className="flex-1">
           <div className="flex items-center gap-2 text-sm">
             <span className="font-semibold hover:underline">
-              {post.author?.pseudoname || "Unknown"}
+              {post.author?.Pseudoname || "Unknown"}
             </span>
             <span className="text-gray-500">
               @{post.author?.school || "user"}
