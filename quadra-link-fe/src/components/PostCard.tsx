@@ -45,18 +45,12 @@ export default function PostCard({
       if (liked) {
         setLiked(false);
         setLikesCount((c) => Math.max(0, c - 1));           
-        await unlikePost(post.id, {
-          signal: likeCtrlRef.current.signal,    
-          timeoutMs: 10_000,                      
-        } as any);
+        await unlikePost(post.id);
         toast.success("Post unliked");                   
       } else {
         setLiked(true);
         setLikesCount((c) => c + 1);
-        await likePost(post.id, {
-          signal: likeCtrlRef.current.signal,         
-          timeoutMs: 10_000,                               
-        } as any);
+        await likePost(post.id);
         toast.success("Post liked");                       
       }
     } catch (err: any) {

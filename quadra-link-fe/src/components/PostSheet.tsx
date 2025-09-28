@@ -35,9 +35,6 @@ export default function PostSheet({
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Abort controllers + busy guard
-  const likeCtrl = useRef<AbortController | null>(null);      // ← add
-  const commentCtrl = useRef<AbortController | null>(null);   // ← add
   const likeBusyRef = useRef(false);                          // ← add
 
   useEffect(() => {
@@ -48,22 +45,14 @@ export default function PostSheet({
     }
   }, [post, userId]); // ← include userId
 
-  // Cleanup on unmount
-  useEffect(() => {                                          // ← add
-    return () => {
-      likeCtrl.current?.abort();
-      commentCtrl.current?.abort();
-    };
-  }, []);
+
 
   if (!post) return null;
 
   async function handleComment() {
     if (!comment.trim() || !post) return;
     try {
-      // cancel any in-flight comment request
-      commentCtrl.current?.abort();                          // ← add
-      commentCtrl.current = new AbortController();           // ← add
+   
 
       const newComment = await addComment(post.id, comment);
       setComments((prev) => [...prev, newComment]);
@@ -80,25 +69,16 @@ export default function PostSheet({
     if (!post || likeBusyRef.current) return;                // ← add busy guard
     likeBusyRef.current = true;                              // ← add
     try {
-      // cancel any in-flight like/unlike
-      likeCtrl.current?.abort();                             // ← add
-      likeCtrl.current = new AbortController();              // ← add
 
       if (liked) {
         setLiked(false);
         setLikesCount((c) => Math.max(0, c - 1));            // ← safe decrement
-        await unlikePost(post.id, {
-          signal: likeCtrl.current.signal,                   // ← add
-          timeoutMs: 10_000,                                 // ← add
-        } as any);
+        await unlikePost(post.id);
         toast.success("Post unliked");                       // ← add
       } else {
         setLiked(true);
         setLikesCount((c) => c + 1);
-        await likePost(post.id, {
-          signal: likeCtrl.current.signal,                   // ← add
-          timeoutMs: 10_000,                                 // ← add
-        } as any);
+        await likePost(post.id);
         toast.success("Post liked");                         // ← add
       }
     } catch (err: any) {
