@@ -79,9 +79,13 @@ export default function SignupPage() {
 
   const onSubmit = async (data: any) => {
     setLoading(true);
-    
+
     try {
-      await apiFetch("/users", { method: "POST", body: data});
+      await apiFetch("/users", {
+        method: "POST",
+        body: JSON.stringify(data), // <-- Fix: stringify the body
+        headers: { "Content-Type": "application/json" }, // <-- Ensure correct header
+      });
       toast.success("Account created! Redirecting to login...");
       setTimeout(() => (window.location.href = "/login"), 1200);
     } catch (err: any) {

@@ -19,7 +19,8 @@ export function useUser() {
     const isFormData = updates instanceof FormData;
     const updated = await apiFetch(`/users/${user.id}`, {
       method: 'PATCH',
-      body: isFormData ? updates : JSON.stringify(updates),
+      body: isFormData ? updates : JSON.stringify(updates), // always stringify if not FormData
+      headers: isFormData ? undefined : { "Content-Type": "application/json" }, // ensure header for JSON
     });
     setUser(updated);
     return updated;
