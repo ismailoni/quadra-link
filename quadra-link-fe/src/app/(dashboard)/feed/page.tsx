@@ -8,7 +8,6 @@ import PostCard from "@/components/PostCard";
 import PostSheet from "@/components/PostSheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button"; // ← add
 
 export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -23,18 +22,9 @@ export default function FeedPage() {
     if (loading || !hasMore) return;
     setLoading(true);
 
-    // abort previous in-flight fetch to avoid UI flicker
-    ctrlRef.current?.abort();
-    const controller = new AbortController();
-    ctrlRef.current = controller;
-
     try {
-      const res = await getPosts(page, 10, { signal: controller.signal });
-      setPosts((prev) => {
-        const prevIds = new Set(prev.map((p) => p.id));
-        const incoming = res.data.filter((p) => !prevIds.has(p.id));
-        return [...prev, ...incoming];
-      });
+      const res = await getPosts(page, 10); 
+      setPosts((prev) => [...prev, ...res.data]);
       setHasMore(res.page * res.limit < res.total);
     } catch (e: any) {
       if (e?.name !== "AbortError") toast.error(e?.message || "Failed to load posts");
@@ -57,35 +47,22 @@ export default function FeedPage() {
           setPage((prev) => prev + 1);
         }
       },
-      { rootMargin: "400px 0px", threshold: 0.01 } // ← prefetch earlier
+      { threshold: 1 }
     );
 
-    if (loaderRef.current) observer.observe(loaderRef.current);
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
     return () => {
       if (loaderRef.current) observer.unobserve(loaderRef.current);
     };
   }, [hasMore, loading]);
 
-  const handleRefresh = () => {
-    if (loading) return;
-    ctrlRef.current?.abort();
-    setPosts([]);
-    setPage(1);
-    setHasMore(true);
-    setTimeout(() => {
-      fetchPosts();
-      toast.success("Feed refreshed");
-    }, 0);
-  };
-
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b p-4 font-bold text-xl flex items-center justify-between">
-        <span>Home</span>
-        <Button size="sm" variant="outline" onClick={handleRefresh} disabled={loading} className="gap-2">
-          {loading ? "Loading..." : "Refresh"}
-        </Button>
+      <div className="sticky top-0 bg-white border-b p-4 font-bold text-xl">
+        Home
       </div>
 
       {posts.length === 0 && loading ? (

@@ -25,9 +25,8 @@ export default function PostCard({
   const [likesCount, setLikesCount] = useState(post.likesCount ?? 0);
 
   const likeCtrlRef = useRef<AbortController | null>(null);
-  const likeBusyRef = useRef(false);
-  const [likeBusy, setLikeBusy] = useState(false); // ← add
-  useEffect(() => {
+  const likeBusyRef = useRef(false);                       
+  useEffect(() => {                                   
     return () => {
       likeCtrlRef.current?.abort();
     };
@@ -35,25 +34,24 @@ export default function PostCard({
 
   async function handleLike(e: React.MouseEvent) {
     e.stopPropagation();
-    if (likeBusyRef.current) return;
-    likeBusyRef.current = true;
-    setLikeBusy(true); // ← add
+    if (likeBusyRef.current) return;                       
+    likeBusyRef.current = true;          
 
     // cancel previous like in-flight
-    likeCtrlRef.current?.abort();
-    likeCtrlRef.current = new AbortController();
+    likeCtrlRef.current?.abort();                 
+    likeCtrlRef.current = new AbortController();  
 
     try {
       if (liked) {
         setLiked(false);
-        setLikesCount((c) => Math.max(0, c - 1));
+        setLikesCount((c) => Math.max(0, c - 1));           
         await unlikePost(post.id);
-        toast.success("Post unliked");
+        toast.success("Post unliked");                   
       } else {
         setLiked(true);
         setLikesCount((c) => c + 1);
         await likePost(post.id);
-        toast.success("Post liked");
+        toast.success("Post liked");                       
       }
     } catch (err: any) {
       if (err?.name === "AbortError") {
@@ -64,12 +62,11 @@ export default function PostCard({
       } else {
         setLiked(isLiked(post, userId));
         setLikesCount(post.likesCount ?? 0);
-        toast.error(err?.message || "Failed to like/unlike post");
+        toast.error(err?.message || "Failed to like/unlike post"); 
         console.error("Failed to like/unlike:", err);
       }
     } finally {
-      likeBusyRef.current = false;
-      setLikeBusy(false); // ← add
+      likeBusyRef.current = false;                         
     }
   }
 
@@ -82,14 +79,6 @@ export default function PostCard({
     <div
       className="border-b p-4 cursor-pointer hover:bg-gray-50 transition"
       onClick={onClickAction}
-      role="button"                // ← add
-      tabIndex={0}                 // ← add
-      onKeyDown={(e) => {          // ← add keyboard activation
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClickAction?.();
-        }
-      }}
     >
       <div className="flex items-start gap-3">
         {/* Avatar */}
@@ -106,7 +95,7 @@ export default function PostCard({
             <span className="text-gray-500">
               @{post.author?.school || "user"}
             </span>
-            <span className="text-gray-400" title={new Date(post.createdAt).toLocaleString()}>
+            <span className="text-gray-400">
               · {formatRelativeTime(post.createdAt)}
             </span>
           </div>
@@ -117,29 +106,24 @@ export default function PostCard({
           <div className="flex gap-6 mt-3 text-sm text-gray-500">
             <button
               onClick={handleCommentClick}
-              className="flex items-center gap-1 hover:text-blue-600 transition active:scale-95"
-              aria-label="Comment"
+              className="flex items-center gap-1 hover:text-blue-600"
             >
               <MessageCircle size={16} />
-              <span>{formatCount(post.commentsCount ?? 0)}</span>
+              <span>{post.commentsCount ?? 0}</span>
             </button>
 
             <div className="flex items-center gap-1 hover:text-green-600">
-              <Repeat size={16} />0
+              <Repeat size={16} />0{/* <span>{post.repostsCount ?? 0}</span> */}
             </div>
 
             <button
               onClick={handleLike}
-              className={`flex items-center gap-1 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`flex items-center gap-1 ${
                 liked ? "text-pink-600" : "hover:text-pink-600"
               }`}
-              aria-pressed={liked}
-              aria-label={liked ? "Unlike" : "Like"}
-              disabled={likeBusy} // ← add
-              title={liked ? "Unlike" : "Like"}
             >
               <Heart size={16} fill={liked ? "currentColor" : "none"} />
-              <span>{formatCount(likesCount)}</span>
+              <span>{likesCount}</span>
             </button>
 
             <div className="flex items-center gap-1 hover:text-gray-700">
@@ -159,11 +143,4 @@ function formatRelativeTime(dateString: string): string {
   if (diff < 24 * 60 * 60 * 1000)
     return `${Math.floor(diff / (60 * 60 * 1000))}h`;
   return `${Math.floor(diff / (24 * 60 * 60 * 1000))}d`;
-}
-
-function formatCount(n: number): string { // ← add
-  if (n < 1000) return String(n);
-  if (n < 10000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-  if (n < 1_000_000) return Math.round(n / 1000) + "k";
-  return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
 }
