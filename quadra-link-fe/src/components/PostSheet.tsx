@@ -32,65 +32,75 @@ export default function PostSheet({
   const [comments, setComments] = useState(post?.comments || []);
   const [likesCount, setLikesCount] = useState(post?.likesCount ?? 0);
   const [liked, setLiked] = useState(isLiked(post, userId));
+  const [sending, setSending] = useState(false);           // ← add
+  const [likeBusy, setLikeBusy] = useState(false);         // ← add
 
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  const likeBusyRef = useRef(false);                          // ← add
+  const commentsContainerRef = useRef<HTMLDivElement | null>(null); // ← add
+  const likeBusyRef = useRef(false);
 
   useEffect(() => {
     if (post) {
       setComments(post.comments || []);
       setLikesCount(post.likesCount ?? 0);
       setLiked(isLiked(post, userId));
+      // autofocus on open
+      setTimeout(() => inputRef.current?.focus(), 0);      // ← add
     }
-  }, [post, userId]); // ← include userId
-
-
+  }, [post, userId]);
 
   if (!post) return null;
 
   async function handleComment() {
-    if (!comment.trim() || !post) return;
+    if (!comment.trim() || !post || sending) return;
+    setSending(true);                                      // ← add
     try {
-   
-
       const newComment = await addComment(post.id, comment);
       setComments((prev) => [...prev, newComment]);
       setComment("");
-      toast.success("Comment added");                        // ← add
+      // scroll to bottom to show new comment
+      requestAnimationFrame(() => {
+        commentsContainerRef.current?.scrollTo({
+          top: commentsContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      });
+      toast.success("Comment added");
     } catch (err: any) {
-      if (err?.name === "AbortError") return;               // ← add
-      toast.error(err?.message || "Failed to add comment");  // ← add
+      if (err?.name === "AbortError") return;
+      toast.error(err?.message || "Failed to add comment");
       console.error("Failed to add comment:", err);
+    } finally {
+      setSending(false);                                   // ← add
     }
   }
 
   async function handleLike() {
-    if (!post || likeBusyRef.current) return;                // ← add busy guard
-    likeBusyRef.current = true;                              // ← add
+    if (!post || likeBusyRef.current) return;
+    likeBusyRef.current = true;
+    setLikeBusy(true);                                     // ← add
     try {
-
       if (liked) {
         setLiked(false);
-        setLikesCount((c) => Math.max(0, c - 1));            // ← safe decrement
+        setLikesCount((c) => Math.max(0, c - 1));
         await unlikePost(post.id);
-        toast.success("Post unliked");                       // ← add
+        toast.success("Post unliked");
       } else {
         setLiked(true);
         setLikesCount((c) => c + 1);
         await likePost(post.id);
-        toast.success("Post liked");                         // ← add
+        toast.success("Post liked");
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        // rollback
         setLiked(isLiked(post, userId));
         setLikesCount(post.likesCount ?? 0);
-        toast.error(err?.message || "Failed to update like"); // ← add
+        toast.error(err?.message || "Failed to update like");
         console.error("Failed to like/unlike:", err);
       }
     } finally {
-      likeBusyRef.current = false;                           // ← add
+      likeBusyRef.current = false;
+      setLikeBusy(false);                                  // ← add
     }
   }
 
@@ -102,7 +112,9 @@ export default function PostSheet({
     <Sheet open={!!post} onOpenChange={onCloseAction}>
       <SheetContent className="w-full sm:w-[600px] flex flex-col">
         <SheetHeader>
-          <SheetTitle className="text-xl font-bold">Post</SheetTitle>
+          <SheetTitle className="text-xl font-bold">
+            Post{post?.author?.Pseudoname ? ` by ${post.author.Pseudoname}` : ""}
+          </SheetTitle>
         </SheetHeader>
 
         {/* Post Content */}
@@ -121,7 +133,8 @@ export default function PostSheet({
           <div className="flex justify-around mt-4 text-sm text-gray-500">
             <button
               onClick={focusCommentInput}
-              className="flex items-center gap-1 hover:text-blue-600"
+              className="flex items-center gap-1 hover:text-blue-600 transition active:scale-95"
+              aria-label="Focus comment input"
             >
               <MessageCircle size={18} />
               <span>{comments.length}</span>
@@ -133,9 +146,12 @@ export default function PostSheet({
 
             <button
               onClick={handleLike}
-              className={`flex items-center gap-1 ${
+              className={`flex items-center gap-1 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                 liked ? "text-pink-600" : "hover:text-pink-600"
               }`}
+              aria-pressed={liked}
+              aria-label={liked ? "Unlike" : "Like"}
+              disabled={likeBusy}                              // ← add
             >
               <Heart size={18} fill={liked ? "currentColor" : "none"} />
               <span>{likesCount}</span>
@@ -148,7 +164,11 @@ export default function PostSheet({
         </div>
 
         {/* Comments */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div
+          ref={commentsContainerRef}                        // ← add
+          className="flex-1 overflow-y-auto p-4 space-y-3"
+          aria-live="polite"
+        >
           {comments.map((c) => (
             <div key={c.id} className="flex items-start gap-2">
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs">
@@ -174,9 +194,17 @@ export default function PostSheet({
             placeholder="Write a comment..."
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleComment()}
+            onKeyDown={(e) => {
+              if ((e.key === "Enter" && !e.shiftKey) || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) {
+                e.preventDefault();
+                handleComment();
+              }
+            }}
+            aria-label="Comment input"
           />
-          <Button onClick={handleComment}>Send</Button>
+          <Button onClick={handleComment} disabled={sending || !comment.trim()} aria-busy={sending}>
+            {sending ? "Sending..." : "Send"}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

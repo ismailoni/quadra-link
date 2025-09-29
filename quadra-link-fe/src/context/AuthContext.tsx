@@ -24,6 +24,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load token from localStorage on mount
+  useEffect(() => {
+    const t = getToken();
+    setToken(t);
+  }, []);
+
   const fetchUser = async () => {
     const t = getToken();
     setToken(t);
@@ -41,14 +47,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    (async () => {
-      try {
-        await fetchUser();
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    // Only fetch user if token is present
+    if (token) {
+      (async () => {
+        try {
+          await fetchUser();
+        } finally {
+          setLoading(false);
+        }
+      })();
+    } else {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleLogin = (newToken: string) => {
     localStorage.setItem("authToken", newToken);
