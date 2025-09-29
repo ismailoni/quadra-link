@@ -1,20 +1,32 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, Heart, Repeat, Share } from "lucide-react";
+import { MessageCircle, Heart, Repeat, Share, MoreHorizontal } from "lucide-react";
 import type { Post } from "@/types";
 import { useUser } from "@/hooks/useUser";
-import { likePost, unlikePost } from "@/services/post";
+import { likePost, unlikePost, deletePost, updatePost } from "@/services/post";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function PostCard({
   post,
   onClickAction,
   onCommentClickAction,
+  onDeleteAction,
+  onEditAction,
 }: {
   post: Post;
   onClickAction?: () => void;
   onCommentClickAction?: (post: Post) => void;
+  onDeleteAction?: (postId: string) => void;
+  onEditAction?: (updatedPost: Post) => void;
 }) {
   function isLiked(post: Post, userId: string): boolean {
     return Array.isArray(post.likes) && post.likes.some((like) => like.user?.id === userId);
@@ -24,9 +36,12 @@ export default function PostCard({
   const [liked, setLiked] = useState(isLiked(post, userId));
   const [likesCount, setLikesCount] = useState(post.likesCount ?? 0);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+
   const likeCtrlRef = useRef<AbortController | null>(null);
-  const likeBusyRef = useRef(false);                       
-  useEffect(() => {                                   
+  const likeBusyRef = useRef(false);
+  useEffect(() => {
     return () => {
       likeCtrlRef.current?.abort();
     };
@@ -34,24 +49,24 @@ export default function PostCard({
 
   async function handleLike(e: React.MouseEvent) {
     e.stopPropagation();
-    if (likeBusyRef.current) return;                       
-    likeBusyRef.current = true;          
+    if (likeBusyRef.current) return;
+    likeBusyRef.current = true;
 
     // cancel previous like in-flight
-    likeCtrlRef.current?.abort();                 
-    likeCtrlRef.current = new AbortController();  
+    likeCtrlRef.current?.abort();
+    likeCtrlRef.current = new AbortController();
 
     try {
       if (liked) {
         setLiked(false);
-        setLikesCount((c) => Math.max(0, c - 1));           
+        setLikesCount((c) => Math.max(0, c - 1));
         await unlikePost(post.id);
-        toast.success("Post unliked");                   
+        toast.success("Post unliked");
       } else {
         setLiked(true);
         setLikesCount((c) => c + 1);
         await likePost(post.id);
-        toast.success("Post liked");                       
+        toast.success("Post liked");
       }
     } catch (err: any) {
       if (err?.name === "AbortError") {
@@ -62,17 +77,47 @@ export default function PostCard({
       } else {
         setLiked(isLiked(post, userId));
         setLikesCount(post.likesCount ?? 0);
-        toast.error(err?.message || "Failed to like/unlike post"); 
+        toast.error(err?.message || "Failed to like/unlike post");
         console.error("Failed to like/unlike:", err);
       }
     } finally {
-      likeBusyRef.current = false;                         
+      likeBusyRef.current = false;
     }
   }
 
   function handleCommentClick(e: React.MouseEvent) {
     e.stopPropagation();
     onCommentClickAction?.(post);
+  }
+
+  async function handleDelete() {
+    try {
+      await deletePost(post.id);
+      onDeleteAction?.(post.id);
+      toast.success("Post deleted");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete post");
+    }
+  }
+
+  async function handleEdit() {
+    setIsEditing(true);
+  }
+
+  async function handleSaveEdit() {
+    try {
+      const updatedPost = await updatePost(post.id, { content: editContent });
+      onEditAction?.(updatedPost);
+      setIsEditing(false);
+      toast.success("Post updated");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update post");
+    }
+  }
+
+  function handleCancelEdit() {
+    setEditContent(post.content);
+    setIsEditing(false);
   }
 
   return (
@@ -100,7 +145,25 @@ export default function PostCard({
             </span>
           </div>
 
-          <p className="mt-1 text-gray-800">{post.content}</p>
+          {isEditing ? (
+            <div className="mt-1">
+              <Input
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="mb-2"
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSaveEdit}>
+                  Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1 text-gray-800">{post.content}</p>
+          )}
 
           {/* Actions */}
           <div className="flex gap-6 mt-3 text-sm text-gray-500">
@@ -129,6 +192,20 @@ export default function PostCard({
             <div className="flex items-center gap-1 hover:text-gray-700">
               <Share size={16} />
             </div>
+
+            {post.author?.id === userId && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-1 hover:text-gray-700">
+                    <MoreHorizontal size={16} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDelete}>Delete</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>

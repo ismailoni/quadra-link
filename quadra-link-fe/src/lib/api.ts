@@ -20,6 +20,7 @@ export async function apiFetch<T = any>(
   const res = await fetch(url, {
     ...options,
     headers,
+    signal: options.signal, // Add signal support
   });
 
   if (!res.ok) {

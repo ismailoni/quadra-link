@@ -8,6 +8,7 @@ import PostCard from "@/components/PostCard";
 import PostSheet from "@/components/PostSheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext"; // Add this import
 
 export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -17,21 +18,30 @@ export default function FeedPage() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   const ctrlRef = useRef<AbortController | null>(null);
+  const { token, user } = useAuth(); // Add user to check and use user info
 
   const fetchPosts = useCallback(async () => {
-    if (loading || !hasMore) return;
+    if (loading || !hasMore || !token) return; // Skip if no token
     setLoading(true);
+    ctrlRef.current?.abort(); // Cancel previous request
+    ctrlRef.current = new AbortController();
 
     try {
-      const res = await getPosts(page, 10); 
+      const res = await getPosts(page, 10, { signal: ctrlRef.current.signal });
       setPosts((prev) => [...prev, ...res.data]);
       setHasMore(res.page * res.limit < res.total);
     } catch (e: any) {
-      if (e?.name !== "AbortError") toast.error(e?.message || "Failed to load posts");
+      if (e?.name !== "AbortError") {
+        toast.error(e?.message || "Failed to load posts");
+        if (e?.message?.includes("401")) {
+          // Optional: Handle logout on 401
+          // logout logic here if needed
+        }
+      }
     } finally {
       setLoading(false);
     }
-  }, [page, hasMore, loading]);
+  }, [page, hasMore, loading, token]); // Add token to deps
 
   useEffect(() => {
     fetchPosts();
@@ -62,7 +72,7 @@ export default function FeedPage() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b p-4 font-bold text-xl">
-        Home
+        Home{user ? ` - ${user.Fullname || user.Pseudoname || 'User'}` : ''}
       </div>
 
       {posts.length === 0 && loading ? (
@@ -85,6 +95,10 @@ export default function FeedPage() {
             key={post.id}
             post={post}
             onClickAction={() => setSelectedPost(post)}
+            onDeleteAction={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+            onEditAction={(updatedPost) =>
+              setPosts((prev) => prev.map((p) => (p.id === updatedPost.id ? updatedPost : p)))
+            }
           />
         ))
       )}
