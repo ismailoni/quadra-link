@@ -1,143 +1,84 @@
-// src/app/login/page.tsx
-"use client";
-import { useState, useEffect, useRef } from "react";
-import { login } from "@/services/auth";
-import { useUser } from "@/hooks/useUser";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+// app/auth/login/page.tsx
+'use client';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import { useState } from 'react';
 
-  const { user, loading } = useUser();
+const formSchema = z.object({
+  email: z.string().email('Invalid email'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+export default function Login() {
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+  });
   const router = useRouter();
+  const [token, setToken] = useState<string | null>(null);
 
-  // redirect if already logged in
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace("/feed");
-    }
-  }, [loading, user, router]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSubmitting(true);
-
-
+  const onSubmit = async (data: FormData) => {
     try {
-      await login(
-        { email, password }
-      );
-
-      toast.success("Login Successful 🎉", {
-        description: "Redirecting you to your feed...",
-      });
-
-      setTimeout(() => router.push("/feed"), 1200);
-    } catch (err: any) {
-      if (err?.name === "AbortError" || err?.name === "CanceledError") {
-        toast.message("Login canceled");
-      } else {
-        setError(err.message || "Login failed");
-
-        toast.error("Login Failed", {
-          description: err?.message || "Something went wrong",
-        });
+      const response = await api.post<{ token?: string; message?: string }>('/auth/login', data);
+      // api.post here returns the parsed response (data). prefer backend message when available.
+      const token = (response as any)?.token ?? null;
+      const message = (response as any)?.message ?? null;
+      if (token) {
+        setToken(token);
+        localStorage.setItem('token', token);
       }
-    } finally {
-      setSubmitting(false);
+      toast.success(message ?? 'Login successful!');
+      router.push('/dashboard');
+    } catch (err: any) {
+      // Prefer backend error fields if provided
+      const backendMsg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'An error occurred';
+      toast.error(String(backendMsg));
     }
-  }
-
-
-  // show spinner while checking session
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-200">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-        {/* Header */}
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-2">
-          Welcome Back
-        </h1>
-        <p className="text-center text-gray-600 mb-6">
-          Login to continue your wellness journey
-        </p>
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <header className="mb-6 text-center z-10">
+        <h1 className="text-3xl font-extrabold text-blue-600">Quadra Link</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">Connect, share, and grow with your community</p>
+      </header>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-2">
-              {error}
-            </p>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              required
-            />
-            <div className="flex justify-end mt-1">
-              <a
-                href="/forgot-password"
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Forgot password?
-              </a>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full flex items-center justify-center bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {submitting ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              "Login"
-            )}
-          </button>
-        </form>
-
-        {/* Footer */}
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Don&apos;t have an account?{" "}
-          <a href="/signup" className="text-blue-600 hover:underline font-medium">
-            Sign up
-          </a>
-        </p>
+      <div className="z-10">
+        <Card className="w-[420px] card">
+          <div className="card-header-accent" />
+          <CardHeader>
+            <CardTitle className="text-lg">Welcome back</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Input placeholder="Email" type="email" className="input-focus" {...register('email')} />
+                {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+              </div>
+              <div>
+                <Input placeholder="Password" type="password" className="input-focus" {...register('password')} />
+                {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
+              </div>
+              <Button type="submit" className="w-full btn-primary">Login</Button>
+              <Button variant="link" onClick={() => router.push('/forgot-password')} className="w-full mt-1 text-sm">
+                Forgot Password?
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

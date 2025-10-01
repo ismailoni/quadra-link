@@ -1,33 +1,36 @@
-// src/lib/api.ts
-import { getToken } from "@/services/auth";
+// lib/api.ts
+import { toast } from 'sonner';
 
-export async function apiFetch<T = any>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  const url = `${API_BASE}${endpoint}`;
-  const token = getToken();
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-  // Always set Content-Type for requests with a body
-  const hasBody = !!options.body;
-  const headers: Record<string, string> = {
-    ...(options.headers as any),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(hasBody ? { "Content-Type": "application/json" } : {}),
-  };
+export const api = {
+  post: async <T>(endpoint: string, data: any, token?: string): Promise<T> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(data),
+      });
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-    signal: options.signal, // Add signal support
-  });
+      const contentType = response.headers.get('content-type') || '';
+      const responseBody = contentType.includes('application/json') ? await response.json() : await response.text();
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || `API error: ${res.status}`);
-  }
-  return res.json();
-}
+      if (!response.ok) {
+        const message = (responseBody && typeof responseBody === 'object' && 'message' in responseBody)
+          ? (responseBody as any).message
+          : (typeof responseBody === 'string' ? responseBody : 'Request failed');
+        toast.error(message);
+        throw new Error(message);
+      }
 
-
+      return responseBody as T;
+    } catch (err: any) {
+      const message = err?.message || 'Network error';
+      toast.error(message);
+      throw err;
+    }
+  },
+};

@@ -1,29 +1,15 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Montserrat } from "next/font/google";
-import "./globals.css";
-import Navbar from "@/components/Navbar";
-import { AuthProvider } from "@/context/AuthContext";
-import { Toaster } from "sonner";
+// app/layout.tsx
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { Toaster } from 'sonner';
+import DynamicBackground from '../components/DynamicBackground';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "Quadra Link",
-  description: "Connect. Collaborate. Create.",
+  title: 'Community App',
+  description: 'A full-stack community platform',
 };
 
 export default function RootLayout({
@@ -33,14 +19,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} antialiased`}
-      >
-        <Navbar />
-        <AuthProvider>
+      <body className={`${inter.className} app-root`}>
+        <DynamicBackground />
+        <main className="app-content">
           {children}
-          <Toaster richColors position="top-right" />
-        </AuthProvider>
+        </main>
+        <Toaster richColors position='top-right' />
       </body>
     </html>
   );
