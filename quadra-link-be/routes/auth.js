@@ -14,13 +14,13 @@ router.post('/register', async (req, res) => {
 	const { firstname, lastname, email, password, institutionShortcode, role = 'student' } = req.body;
 
 	const institution = await Institution.findOne({ where: { shortcode: institutionShortcode } });
-	if (!institution) return res.status(400).json({ error: 'Invalid institution' });
+	if (!institution) return res.status(400).json({ errorMessage: 'Invalid institution' });
 
 	const emailRegex = new RegExp(institution.emailPattern);
-	if (!emailRegex.test(email)) return res.status(400).json({ error: 'Email does not match institution format' });
+	if (!emailRegex.test(email)) return res.status(400).json({ errorMessage: 'Email does not match institution format' });
 
 	const existingUser = await User.findOne({ where: { email } });
-	if (existingUser) return res.status(400).json({ error: 'Email taken' });
+	if (existingUser) return res.status(400).json({ errorMessage: 'Email taken' });
 
 	// Hash the password before creating the user
 	const passwordHash = await bcrypt.hash(password, 10);
@@ -30,6 +30,8 @@ router.post('/register', async (req, res) => {
 		lastname,
 		email,
 		passwordHash,
+		// Also store the hashed password into a common `password` field if the model or legacy records expect that name.
+		password: passwordHash,
 		role,
 		institutionId: institution.id,
 	});
@@ -40,8 +42,16 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
 	const { email, password } = req.body;
 	const user = await User.findOne({ where: { email } });
-	if (!user || !await bcrypt.compare(password, user.passwordHash)) {
-		return res.status(401).json({ error: 'Invalid credentials' });
+	if (!user) {
+		return res.status(401).json({ errorMessage: 'Invalid credentials' });
+	}
+
+	// Support either `passwordHash` or legacy `password` attribute (both store hashed values).
+	const storedHash = user.passwordHash || user.password || '';
+	const isMatch = storedHash ? await bcrypt.compare(password, storedHash) : false;
+
+	if (!isMatch) {
+		return res.status(401).json({ errorMessage: 'Invalid credentials' });
 	}
 	const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 	res.json({ token });
@@ -51,10 +61,10 @@ router.post('/login', async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
 	try {
 		const { email } = req.body;
-		if (!email) return res.status(400).json({ error: 'Email required' });
+		if (!email) return res.status(400).json({ errorMessage: 'Email required' });
 
 		const user = await User.findOne({ where: { email } });
-		if (!user) return res.status(404).json({ error: 'User not found' });
+		if (!user) return res.status(404).json({ errorMessage: 'User not found' });
 
 		const resetToken = crypto.randomBytes(32).toString('hex');
 		const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
@@ -72,7 +82,7 @@ router.post('/forgot-password', async (req, res) => {
 		if (baseUrl.includes(' #')) baseUrl = baseUrl.split(' #')[0].trim();
 		if (!host || !emailUser || !emailPass || !baseUrl) {
 			console.error('Mail config missing:', { host, emailUser, baseUrl });
-			return res.status(500).json({ error: 'Email not configured' });
+			return res.status(500).json({ errorMessage: 'Email not configured' });
 		}
 
 		const transporter = nodemailer.createTransport({
@@ -101,7 +111,7 @@ router.post('/forgot-password', async (req, res) => {
 		res.json({ message: 'Reset email sent' });
 	} catch (err) {
 		console.error('Forgot-password error:', err);
-		res.status(500).json({ error: 'Internal server error' });
+		res.status(500).json({ errorMessage: 'Internal server error' });
 	}
 });
 
@@ -117,10 +127,12 @@ router.post('/reset-password', async (req, res) => {
 		},
 	});
 
-	if (!user) return res.status(400).json({ error: 'Invalid or expired token' });
+	if (!user) return res.status(400).json({ errorMessage: 'Invalid or expired token' });
 
-	// Hash the new password before saving
-	user.passwordHash = await bcrypt.hash(newPassword, 10);
+	// Hash the new password before saving and store in both fields to be safe.
+	const newHash = await bcrypt.hash(newPassword, 10);
+	user.passwordHash = newHash;
+	user.password = newHash; // keep legacy/alternate field synced
 	user.resetToken = null;
 	user.resetExpires = null;
 	await user.save();

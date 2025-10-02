@@ -19,8 +19,8 @@ export const api = {
       const responseBody = contentType.includes('application/json') ? await response.json() : await response.text();
 
       if (!response.ok) {
-        const message = (responseBody && typeof responseBody === 'object' && 'message' in responseBody)
-          ? (responseBody as any).message
+        const message = (responseBody && typeof responseBody === 'object' && 'errorMessage' in responseBody)
+          ? (responseBody as any).errorMessage
           : (typeof responseBody === 'string' ? responseBody : 'Request failed');
         toast.error(message);
         throw new Error(message);

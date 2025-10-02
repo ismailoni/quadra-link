@@ -79,7 +79,8 @@ export default function ResetPassword() {
                 <Input
                   placeholder="New Password"
                   type={showPassword ? 'text' : 'password'}
-                  {...register('newPassword')}
+                  // keep the react-hook-form registration but also update local state for strength meter
+                  {...register('newPassword', { onChange: (e) => setNewPassword((e.target as HTMLInputElement).value) })}
                   disabled={loading}
                   className="pr-12"
                 />
