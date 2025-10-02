@@ -10,7 +10,7 @@ const notificationsRoutes = require('./routes/notifications');
 const communitiesRoutes = require('./routes/communities');
 const messagesRoutes = require('./routes/messages');
 const normalizePort = require('./utils/normalizePort');
-const initWebsocket = require('./config/websocket'); // <-- import initializer, not server
+const {initWebsocket} = require('./config/websocket'); // <-- import initializer, not server
 
 dotenv.config();
 
