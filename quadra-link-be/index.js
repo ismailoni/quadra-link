@@ -9,8 +9,8 @@ const moodCheckInRoutes = require('./routes/moodCheckIn');
 const notificationsRoutes = require('./routes/notifications');
 const communitiesRoutes = require('./routes/communities');
 const messagesRoutes = require('./routes/messages');
-const { server } = require('./config/websocket');
 const normalizePort = require('./utils/normalizePort');
+const initWebsocket = require('./config/websocket'); // <-- import initializer, not server
 
 dotenv.config();
 
@@ -22,8 +22,8 @@ const PORT = normalizePort(process.env.PORT, DEFAULT_PORT);
 app.use(cors());
 app.use(express.json());
 
-// Sync DB (for dev; use migrations in prod)
-sequelize.sync({ alter: true }) // alter: true updates schema without dropping
+// Sync DB
+sequelize.sync({ alter: true })
   .then(() => console.log('PostgreSQL connected and synced'))
   .catch(err => console.error('PostgreSQL connection error:', err));
 
@@ -42,14 +42,8 @@ app.get('/', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString()
 
 // Start Express HTTP server
 const server = app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT} (NODE_ENV=${process.env.NODE_ENV || 'development'})`);
+  console.log(`🚀 Server listening on port ${PORT} (NODE_ENV=${process.env.NODE_ENV || 'development'})`);
 });
 
-// Handle listen errors gracefully
-server.on('error', (err) => {
-  console.error('Server error on listen:', err);
-  // Keep process alive for debug; in production you may want to exit.
-});
-
-// If you need to start websocket server as well, do it after Express:
-server.listen(PORT + 1, () => console.log(`WebSocket server running on port ${PORT + 1}`));
+// Attach WebSocket to the same HTTP server
+initWebsocket(server);
