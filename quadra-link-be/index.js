@@ -10,16 +10,17 @@ const notificationsRoutes = require('./routes/notifications');
 const communitiesRoutes = require('./routes/communities');
 const messagesRoutes = require('./routes/messages');
 const { server } = require('./config/websocket');
+const normalizePort = require('./utils/normalizePort');
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const DEFAULT_PORT = 3000;
+const PORT = normalizePort(process.env.PORT, DEFAULT_PORT);
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-
 
 // Sync DB (for dev; use migrations in prod)
 sequelize.sync({ alter: true }) // alter: true updates schema without dropping
@@ -37,10 +38,18 @@ app.use('/communities', communitiesRoutes);
 app.use('/messages', messagesRoutes);
 
 // Health check
-app.get('/', (req, res) => res.send('Campus Mental Health API is running!'));
+app.get('/', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
 // Start Express HTTP server
-app.listen(PORT, () => console.log(`Express server running on port ${PORT}`));
+const server = app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT} (NODE_ENV=${process.env.NODE_ENV || 'development'})`);
+});
+
+// Handle listen errors gracefully
+server.on('error', (err) => {
+  console.error('Server error on listen:', err);
+  // Keep process alive for debug; in production you may want to exit.
+});
 
 // If you need to start websocket server as well, do it after Express:
 server.listen(PORT + 1, () => console.log(`WebSocket server running on port ${PORT + 1}`));
