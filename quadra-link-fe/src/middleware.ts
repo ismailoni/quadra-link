@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
+  // ✅ Match cookie name with what backend sets ("jwt")
+  const token = req.cookies.get("jwt")?.value ?? null;
 
   const { pathname } = req.nextUrl;
 
   const isAuthPage = pathname.startsWith("/login");
   const isProtectedPage = pathname.startsWith("/dashboard");
 
-  // Block unauthenticated users
+  // Block unauthenticated users from protected routes
   if (isProtectedPage && !token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }

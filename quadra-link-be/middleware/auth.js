@@ -2,7 +2,15 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = (roles = []) => (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+  // Try Authorization header first
+  let token = req.header('Authorization')?.replace('Bearer ', '');
+
+  // Fallback: parse cookie string for jwt (no cookie-parser dependency required)
+  if (!token && req.headers && req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:^|; )jwt=([^;]+)/);
+    if (match) token = match[1];
+  }
+
   if (!token) return res.status(401).json({ error: 'No token' });
 
   try {

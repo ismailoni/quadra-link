@@ -35,29 +35,22 @@ export default function Login() {
   });
 
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      const response = await api.post<{ token?: string; message?: string }>(
+      const response = await api.post<{ message?: string }>(
         "/auth/login",
         data
       );
-      const token = (response as any)?.token ?? null;
-      const message = (response as any)?.message ?? null;
-      // const errorMessage = (response as any)?.errorMessage ?? null;
 
-      if (token) {
-        setToken(token);
-        localStorage.setItem("token", token);
-        toast.success(message ?? "Login successful!");
-        router.push("/dashboard");
-      } else {
-        // toast.error(errorMessage ?? "Login failed.");
-      }
+      const message = (response as any)?.message ?? "Login successful!";
+      toast.success(message);
+
+      // cookie is already set by backend
+      router.push("/dashboard");
     } finally {
       setLoading(false);
     }
@@ -71,7 +64,7 @@ export default function Login() {
         <div className="absolute w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl bottom-0 right-0 animate-pulse delay-2000" />
       </div>
 
-      {/* Left side illustration (hidden on small screens) */}
+      {/* Left side illustration */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-12 text-white">
         <div className="max-w-md text-center animate-fadeIn">
           <img
@@ -110,9 +103,7 @@ export default function Login() {
                 <Input
                   placeholder="your@email.com"
                   type="email"
-                  className={`input-focus ${
-                    errors.email ? "border-red-500" : ""
-                  }`}
+                  className={`input-focus ${errors.email ? "border-red-500" : ""}`}
                   {...register("email")}
                 />
                 {errors.email && (

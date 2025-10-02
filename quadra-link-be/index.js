@@ -19,7 +19,27 @@ const DEFAULT_PORT = 3000;
 const PORT = normalizePort(process.env.PORT, DEFAULT_PORT);
 
 // Middleware
-app.use(cors());
+// Replace generic cors() with explicit options so credentials work with a non-wildcard origin
+const FRONTEND_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:3000';
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow non-browser requests (e.g. server-to-server) when origin is undefined
+    if (!origin || origin === FRONTEND_ORIGIN) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true, // Allow cookies to be sent
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','Accept'],
+};
+app.use(cors(corsOptions));
+// Replace the problematic app.options('*', ...) which caused path-to-regexp errors
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    // run cors for preflight without registering a '*' route
+    return cors(corsOptions)(req, res, next);
+  }
+  next();
+});
 app.use(express.json());
 
 // Sync DB

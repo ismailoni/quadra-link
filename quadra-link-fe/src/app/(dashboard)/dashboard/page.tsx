@@ -1,15 +1,22 @@
-import React from 'react';
+"use client";
 
-const DashboardPage: React.FC = () => {
-    return (
-        <main className="dashboard-container">
-            <h1>Dashboard</h1>
-            <section>
-                <p>Welcome to your dashboard. Here you can manage your account, view analytics, and access advanced features.</p>
-                {/* Add advanced dashboard components here */}
-            </section>
-        </main>
-    );
-};
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default DashboardPage;
+export default function DashboardPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login");
+    }
+  }, [router]);
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <p>Welcome, you’re logged in 🚀</p>
+    </div>
+  );
+}

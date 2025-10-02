@@ -87,14 +87,7 @@ User.init({
   },
 }, {
   sequelize,
-  modelName: 'User',
-  hooks: {
-    beforeSave: async (user) => {
-      if (user.changed('passwordHash')) {
-        user.passwordHash = await bcrypt.hash(user.passwordHash, 10);
-      }
-    },
-  },
+  modelName: 'User'
 });
 
 // Associations
